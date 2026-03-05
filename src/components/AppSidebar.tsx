@@ -8,7 +8,6 @@ import {
   Lock,
   LogOut,
   PanelLeftClose,
-  PanelLeft,
   Moon,
   Sun,
   ChevronDown,
@@ -34,91 +33,118 @@ const contentFolders = [
   { name: "Secure Vault", icon: Lock },
 ];
 
-export default function AppSidebar({ isOpen, onToggle, isDark, onToggleDark, onNewSession, onFolderClick, activeFolder }: AppSidebarProps) {
+export default function AppSidebar({ 
+  isOpen, 
+  onToggle, 
+  isDark, 
+  onToggleDark, 
+  onNewSession, 
+  onFolderClick, 
+  activeFolder 
+}: AppSidebarProps) {
   const [contentsOpen, setContentsOpen] = useState(true);
+
+  // Helper to check if "My Contents" (the main dashboard) is active
+  const isAllActive = activeFolder === "All" || activeFolder === null;
 
   return (
     <aside
       className={`
         fixed top-0 left-0 h-full z-40 flex flex-col
-        bg-[hsl(var(--sidebar-bg))] border-r border-[hsl(var(--sidebar-border))]
+        bg-[#0f0f0f] border-r border-white/5
         transition-all duration-300 ease-in-out
         ${isOpen ? "w-64" : "w-0 overflow-hidden border-r-0"}
       `}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 h-14 shrink-0">
-        <div className="flex items-center gap-2.5">
+      {/* Header - Brand & Toggle */}
+      <div className="flex items-center justify-between px-4 h-16 shrink-0">
+        <div className="flex items-center gap-3">
           <button
             onClick={onToggle}
-            className="p-1.5 rounded-md hover:bg-[hsl(var(--sidebar-hover))] text-[hsl(var(--sidebar-fg))] transition-colors"
+            className="p-2 rounded-xl hover:bg-white/5 text-muted-foreground transition-colors"
           >
             <PanelLeftClose size={20} />
           </button>
-          <span
-            className="text-lg font-bold tracking-tight text-[hsl(var(--sidebar-fg))]"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
+          <span className="text-lg font-semibold tracking-tight text-foreground">
             Cognify
           </span>
         </div>
 
-        {/* Dark mode toggle */}
         <button
           onClick={onToggleDark}
-          className="p-1.5 rounded-md hover:bg-[hsl(var(--sidebar-hover))] text-[hsl(var(--sidebar-fg))] transition-colors"
-          aria-label="Toggle dark mode"
+          className="p-2 rounded-xl hover:bg-white/5 text-muted-foreground transition-colors"
         >
           {isDark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
       </div>
 
-      {/* New Session */}
-      <div className="px-3 mt-2">
+      {/* Action: New Session */}
+      <div className="px-4 mt-2 mb-6">
         <button
           onClick={onNewSession}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 hover:scale-[1.02] transition-all cursor-pointer"
+          className="w-full flex items-center gap-2 px-4 py-3 rounded-2xl bg-[#7c3aed] text-white font-medium text-sm hover:brightness-110 shadow-lg shadow-purple-500/10 transition-all active:scale-95"
         >
           <Plus size={18} />
           <span>New Session</span>
         </button>
       </div>
 
-      {/* My Contents */}
-      <nav className="flex-1 px-3 mt-5 overflow-y-auto">
-        <button
-          onClick={() => setContentsOpen(!contentsOpen)}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold text-muted-foreground hover:bg-[hsl(var(--sidebar-hover))] transition-all cursor-pointer"
-        >
-          {contentsOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          <FolderOpen size={16} />
-          <span>My Contents</span>
-        </button>
+      {/* Navigation */}
+      <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+        
+        {/* Main "My Contents" Item - Triggers Dashboard */}
+        <div className="relative group">
+          <button
+            onClick={() => onFolderClick("All")}
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all font-medium ${
+              isAllActive 
+              ? "bg-white/10 text-foreground" 
+              : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+            }`}
+          >
+            <FolderOpen size={18} />
+            <span className="flex-1 text-left">My Contents</span>
+            
+            {/* Toggle Arrow for accordion */}
+            <div 
+              onClick={(e) => {
+                e.stopPropagation(); // Prevents clicking arrow from triggering "All" view
+                setContentsOpen(!contentsOpen);
+              }}
+              className="p-1 hover:bg-white/10 rounded-md transition-colors"
+            >
+              {contentsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </div>
+          </button>
+        </div>
 
+        {/* Sub-Folders (Indented) */}
         {contentsOpen && (
-          <ul className="mt-1 ml-3 space-y-0.5">
-            {contentFolders.map((folder) => (
-              <li key={folder.name}>
+          <div className="mt-1 ml-4 space-y-1 border-l border-white/5 pl-2">
+            {contentFolders.map((folder) => {
+              const isActive = activeFolder === folder.name;
+              return (
                 <button
+                  key={folder.name}
                   onClick={() => onFolderClick(folder.name)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
-                    activeFolder === folder.name
-                      ? "bg-[hsl(var(--sidebar-active))] text-[hsl(var(--sidebar-active-fg))]"
-                      : "text-[hsl(var(--sidebar-fg))] hover:bg-[hsl(var(--sidebar-hover))]"
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all ${
+                    isActive
+                      ? "bg-white/5 text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
                 >
-                  <folder.icon size={16} className={activeFolder === folder.name ? "" : "text-muted-foreground"} />
+                  <folder.icon size={16} className={isActive ? "text-purple-400" : "opacity-70"} />
                   <span>{folder.name}</span>
                 </button>
-              </li>
-            ))}
-          </ul>
+              );
+            })}
+          </div>
         )}
       </nav>
 
-      {/* Logout */}
-      <div className="px-3 pb-4 shrink-0">
-        <button className="w-full flex items-center gap-2 px-3 py-2.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-all cursor-pointer hover:scale-[1.02] font-medium">
+      {/* Footer / Logout */}
+      <div className="p-4 border-t border-white/5">
+        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-all font-medium">
           <LogOut size={18} />
           <span>Logout</span>
         </button>

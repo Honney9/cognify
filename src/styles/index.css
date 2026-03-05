@@ -30,11 +30,6 @@
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
-    --color-chart-1: var(--chart-1);
-    --color-chart-2: var(--chart-2);
-    --color-chart-3: var(--chart-3);
-    --color-chart-4: var(--chart-4);
-    --color-chart-5: var(--chart-5);
     --color-sidebar: var(--sidebar);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar-primary: var(--sidebar-primary);
@@ -46,112 +41,84 @@
 }
 
 :root {
-    --radius: 0.625rem;
+    /* Gemini-style Light Mode: Crisp & Clean */
+    --radius: 1.25rem; /* Increased default radius for that modern rounded look */
 
-    /* Base */
-    --background: oklch(0.98 0.01 260);
-    --foreground: oklch(0.2 0.02 260);
+    --background: oklch(0.99 0.005 260); /* Very faint off-white */
+    --foreground: oklch(0.25 0.02 260); /* Deep charcoal text */
 
-    --card: oklch(1 0.01 260);
-    --card-foreground: oklch(0.2 0.02 260);
+    --card: oklch(1 0 0); /* Pure white cards */
+    --card-foreground: oklch(0.25 0.02 260);
 
-    --popover: oklch(1 0.01 260);
-    --popover-foreground: oklch(0.2 0.02 260);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.25 0.02 260);
 
-    /* Primary brand (Indigo) */
-    --primary: oklch(0.62 0.2 275);
-    --primary-foreground: oklch(0.98 0.01 260);
+    /* Indigo Primary */
+    --primary: oklch(0.55 0.22 275);
+    --primary-foreground: oklch(0.99 0 0);
 
-    /* Secondary */
-    --secondary: oklch(0.95 0.02 260);
-    --secondary-foreground: oklch(0.25 0.02 260);
+    --secondary: oklch(0.96 0.01 260);
+    --secondary-foreground: oklch(0.3 0.02 260);
 
-    /* Muted */
-    --muted: oklch(0.95 0.02 260);
-    --muted-foreground: oklch(0.55 0.02 260);
+    --muted: oklch(0.94 0.01 260);
+    --muted-foreground: oklch(0.5 0.02 260);
 
-    /* Accent (Electric Blue) */
-    --accent: oklch(0.85 0.15 240);
-    --accent-foreground: oklch(0.2 0.02 260);
+    --accent: oklch(0.96 0.01 260);
+    --accent-foreground: oklch(0.25 0.02 260);
 
-    /* Error */
-    --destructive: oklch(0.62 0.25 25);
-
-    /* UI */
-    --border: oklch(0.9 0.01 260);
+    --destructive: oklch(0.6 0.2 25);
+    --border: oklch(0.92 0.01 260); /* Subtle dividers */
     --input: oklch(0.92 0.01 260);
-    --ring: oklch(0.65 0.18 275);
+    --ring: oklch(0.55 0.22 275);
 
-    /* Charts */
-    --chart-1: oklch(0.65 0.22 275);
-    --chart-2: oklch(0.65 0.18 210);
-    --chart-3: oklch(0.7 0.17 160);
-    --chart-4: oklch(0.75 0.2 80);
-    --chart-5: oklch(0.68 0.2 20);
-
-    /* Sidebar */
-    --sidebar: oklch(0.97 0.01 260);
-    --sidebar-foreground: oklch(0.2 0.02 260);
-
-    --sidebar-primary: oklch(0.62 0.2 275);
-    --sidebar-primary-foreground: oklch(0.98 0.01 260);
-
-    --sidebar-accent: oklch(0.92 0.03 260);
+    /* Sidebar - Light */
+    --sidebar: oklch(0.98 0.005 260);
+    --sidebar-foreground: oklch(0.3 0.02 260);
+    --sidebar-primary: oklch(0.55 0.22 275);
+    --sidebar-primary-foreground: oklch(1 0 0);
+    --sidebar-accent: oklch(0.94 0.02 260);
     --sidebar-accent-foreground: oklch(0.2 0.02 260);
-
-    --sidebar-border: oklch(0.9 0.01 260);
-    --sidebar-ring: oklch(0.65 0.18 275);
+    --sidebar-border: oklch(0.92 0.01 260);
+    --sidebar-ring: oklch(0.55 0.22 275);
 }
 
 .dark {
-    --background: oklch(0.17 0.02 260);
-    --foreground: oklch(0.96 0.01 260);
+    /* Gemini-style Dark Mode: Deep & Minimal */
+    --background: oklch(0.08 0 0); /* Almost pure black */
+    --foreground: oklch(0.9 0.01 260); /* Soft white text */
 
-    --card: oklch(0.22 0.02 260);
-    --card-foreground: oklch(0.96 0.01 260);
+    --card: oklch(0.14 0.01 260); /* Deep charcoal cards */
+    --card-foreground: oklch(0.9 0.01 260);
 
-    --popover: oklch(0.22 0.02 260);
-    --popover-foreground: oklch(0.96 0.01 260);
+    --popover: oklch(0.14 0.01 260);
+    --popover-foreground: oklch(0.9 0.01 260);
 
-    /* Neon Indigo */
-    --primary: oklch(0.72 0.22 275);
-    --primary-foreground: oklch(0.17 0.02 260);
+    --primary: oklch(0.7 0.18 275); /* Vibrant indigo */
+    --primary-foreground: oklch(0.1 0 0);
 
-    --secondary: oklch(0.3 0.02 260);
-    --secondary-foreground: oklch(0.96 0.01 260);
+    --secondary: oklch(0.2 0.01 260);
+    --secondary-foreground: oklch(0.9 0.01 260);
 
-    --muted: oklch(0.3 0.02 260);
-    --muted-foreground: oklch(0.7 0.02 260);
+    --muted: oklch(0.18 0.01 260);
+    --muted-foreground: oklch(0.6 0.01 260);
 
-    /* Electric blue accent */
-    --accent: oklch(0.7 0.2 240);
-    --accent-foreground: oklch(0.96 0.01 260);
+    --accent: oklch(0.22 0.02 260);
+    --accent-foreground: oklch(0.95 0.01 260);
 
-    --destructive: oklch(0.7 0.22 25);
+    --destructive: oklch(0.55 0.2 25);
+    --border: oklch(0.18 0.01 260); /* Very subtle gray borders */
+    --input: oklch(0.18 0.01 260);
+    --ring: oklch(0.7 0.18 275);
 
-    --border: oklch(0.35 0.02 260);
-    --input: oklch(0.35 0.02 260);
-    --ring: oklch(0.7 0.2 275);
-
-    /* Charts */
-    --chart-1: oklch(0.65 0.22 275);
-    --chart-2: oklch(0.65 0.18 210);
-    --chart-3: oklch(0.7 0.17 160);
-    --chart-4: oklch(0.75 0.2 80);
-    --chart-5: oklch(0.68 0.2 20);
-
-    /* Sidebar */
-    --sidebar: oklch(0.22 0.02 260);
-    --sidebar-foreground: oklch(0.96 0.01 260);
-
-    --sidebar-primary: oklch(0.72 0.22 275);
-    --sidebar-primary-foreground: oklch(0.17 0.02 260);
-
-    --sidebar-accent: oklch(0.3 0.02 260);
-    --sidebar-accent-foreground: oklch(0.96 0.01 260);
-
-    --sidebar-border: oklch(0.35 0.02 260);
-    --sidebar-ring: oklch(0.7 0.2 275);
+    /* Sidebar - Dark */
+    --sidebar: oklch(0.1 0.005 260);
+    --sidebar-foreground: oklch(0.8 0.01 260);
+    --sidebar-primary: oklch(0.7 0.18 275);
+    --sidebar-primary-foreground: oklch(0.1 0 0);
+    --sidebar-accent: oklch(0.18 0.01 260);
+    --sidebar-accent-foreground: oklch(0.95 0.01 260);
+    --sidebar-border: oklch(0.15 0.01 260);
+    --sidebar-ring: oklch(0.7 0.18 275);
 }
 
 @layer base {
@@ -159,33 +126,24 @@
     @apply border-border outline-ring/50;
     }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     }
 }
 
-/* Interactive Elements */
+/* Specific component styles for the Gemini look */
 @layer components {
+  /* Document and Code Cards */
+  .content-card {
+    @apply bg-card border border-border/40 hover:border-border/80 hover:bg-accent/30 transition-all duration-300 rounded-[24px];
+  }
 
+  /* Buttons */
   button {
-    @apply cursor-pointer transition-all duration-200 ease-in-out;
+    @apply cursor-pointer transition-all duration-200 ease-in-out active:scale-[0.97];
   }
 
-  button:hover {
-    @apply scale-[1.02];
+  /* Search Input Focus */
+  .search-input {
+    @apply bg-card border-border/50 focus:border-primary/40 focus:bg-background transition-all;
   }
-
-  button:active {
-    @apply scale-[0.98];
-  }
-
-  button:hover svg {
-    transform: scale(1.1);
-    transition: transform 0.2s ease;
-  }
-
-  /* icon buttons */
-  .icon-btn {
-    @apply cursor-pointer transition-colors duration-200 hover:bg-muted rounded-md;
-  }
-  
 }
