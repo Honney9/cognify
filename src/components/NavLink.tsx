@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { ModelCategory, VideoCapture } from '@runanywhere/web';
 import { VLMWorkerBridge } from '@runanywhere/web-llamacpp';
 import { useModelLoader } from '../hooks/useModelLoader';
-import { ModelBanner } from './ModelBanner';
+import { ModelBanner } from './ChatView';
 
 const LIVE_INTERVAL_MS = 2500;
 const LIVE_MAX_TOKENS = 30;
