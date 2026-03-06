@@ -1,5 +1,6 @@
 import { Code, FileText, Camera, Image, Lock, Clock, Search, ArrowLeft, ChevronRight, ShieldCheck, Eye, EyeOff, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
+import DocumentViewer from "../features/documents/DocumentViewer"; // Ensure this path matches your structure
 
 const iconMap: Record<string, React.ElementType> = {
   Code,
@@ -33,9 +34,9 @@ const mockHistory: Record<string, any[]> = {
     { name: "schema.sql", date: "Apr 20", size: "10 KB", snippet: "CREATE TABLE users (id SERIAL PRIMARY KEY, username TEXT UNIQUE)..." }
   ],
   Documents: [
-    { name: "Sampling and Quantization Study Guide", date: "Jan 1", snippet: "# Sampling and Quantization: The Foundations of Digitization..." },
-    { name: "Similarity and Dissimilarity Measures", date: "Jan 1", snippet: "# Comprehensive Guide to Similarity and Dissimilarity..." },
-    { name: "Project Roadmap 2024", date: "Dec 20", snippet: "# Q1-Q4 Strategic Goals and Milestones for the next year..." },
+    { name: "Sampling and Quantization Study Guide", date: "Jan 1", snippet: "# Sampling and Quantization: The Foundations of Digitization\n\nSampling is the process of converting a continuous signal into a discrete sequence of samples..." },
+    { name: "Similarity and Dissimilarity Measures", date: "Jan 1", snippet: "# Comprehensive Guide to Similarity and Dissimilarity\n\nIn data science, understanding how 'close' two data points are is fundamental..." },
+    { name: "Project Roadmap 2024", date: "Dec 20", snippet: "# Q1-Q4 Strategic Goals and Milestones for the next year\n\n- Q1: Alpha launch of Core Engine\n- Q2: Beta testing with pilot users..." },
     { name: "Annual Budget Report", date: "Jan 5", snippet: "Total Projected Revenue: $2.4M; Expenses: $1.8M; Profit Margin..." },
     { name: "Meeting Minutes - March", date: "Mar 3", snippet: "Attendees: John, Sarah, Mike. Discussion: AI Integration Roadmap..." },
     { name: "Research Paper Draft", date: "Feb 15", snippet: "Abstract: This paper explores the impact of LLMs on knowledge retrieval..." },
@@ -55,48 +56,48 @@ const mockHistory: Record<string, any[]> = {
     { name: "Workshop Notes", date: "Apr 20", snippet: "Key Takeaway: Simplicity is the ultimate sophistication in UI design..." }
   ],
   Screenshots: [
-    { name: "Dashboard_Draft_Final.png", date: "Mar 2", url: "https://picsum.photos/seed/s1/400" },
-    { name: "Console_Error_Log.jpg", date: "Feb 20", url: "https://picsum.photos/seed/s2/400" },
-    { name: "Mobile_Nav_Bug.png", date: "Feb 18", url: "https://picsum.photos/seed/s3/400" },
-    { name: "Color_Palette_Ref.png", date: "Feb 10", url: "https://picsum.photos/seed/s4/400" },
-    { name: "Layout_Wireframe.jpg", date: "Jan 25", url: "https://picsum.photos/seed/s5/400" },
-    { name: "Typography_Test.png", date: "Jan 15", url: "https://picsum.photos/seed/s6/400" },
-    { name: "Dark_Mode_Comparison.png", date: "Dec 30", url: "https://picsum.photos/seed/s7/400" },
-    { name: "User_Flow_Chart.png", date: "Dec 12", url: "https://picsum.photos/seed/s8/400" },
-    { name: "Loading_State_UI.jpg", date: "Nov 25", url: "https://picsum.photos/seed/s9/400" },
-    { name: "Success_Modal_Design.png", date: "Nov 10", url: "https://picsum.photos/seed/s10/400" },
-    { name: "Profile_Page_Mockup.png", date: "Oct 28", url: "https://picsum.photos/seed/s11/400" },
-    { name: "Setting_Menu_Draft.png", date: "Oct 15", url: "https://picsum.photos/seed/s12/400" },
-    { name: "API_Response_JSON.png", date: "Sep 20", url: "https://picsum.photos/seed/s13/400" },
-    { name: "Network_Tab_Profiling.jpg", date: "Aug 12", url: "https://picsum.photos/seed/s14/400" },
-    { name: "Git_Merge_Conflict.png", date: "Jul 25", url: "https://picsum.photos/seed/s15/400" },
-    { name: "New_Logo_Variant.png", date: "Jun 30", url: "https://picsum.photos/seed/s16/400" },
-    { name: "Button_Hover_Effects.png", date: "May 18", url: "https://picsum.photos/seed/s17/400" },
-    { name: "Sidebar_Collapsed.png", date: "Apr 12", url: "https://picsum.photos/seed/s18/400" },
-    { name: "Chat_Interface_Alpha.png", date: "Mar 15", url: "https://picsum.photos/seed/s19/400" },
-    { name: "Footer_Design_V3.png", date: "Feb 28", url: "https://picsum.photos/seed/s20/400" }
+    { name: "Dashboard_Draft_Final.png", date: "Mar 2", url: "https://picsum.photos/seed/s1/800/600" },
+    { name: "Console_Error_Log.jpg", date: "Feb 20", url: "https://picsum.photos/seed/s2/800/600" },
+    { name: "Mobile_Nav_Bug.png", date: "Feb 18", url: "https://picsum.photos/seed/s3/800/600" },
+    { name: "Color_Palette_Ref.png", date: "Feb 10", url: "https://picsum.photos/seed/s4/800/600" },
+    { name: "Layout_Wireframe.jpg", date: "Jan 25", url: "https://picsum.photos/seed/s5/800/600" },
+    { name: "Typography_Test.png", date: "Jan 15", url: "https://picsum.photos/seed/s6/800/600" },
+    { name: "Dark_Mode_Comparison.png", date: "Dec 30", url: "https://picsum.photos/seed/s7/800/600" },
+    { name: "User_Flow_Chart.png", date: "Dec 12", url: "https://picsum.photos/seed/s8/800/600" },
+    { name: "Loading_State_UI.jpg", date: "Nov 25", url: "https://picsum.photos/seed/s9/800/600" },
+    { name: "Success_Modal_Design.png", date: "Nov 10", url: "https://picsum.photos/seed/s10/800/600" },
+    { name: "Profile_Page_Mockup.png", date: "Oct 28", url: "https://picsum.photos/seed/s11/800/600" },
+    { name: "Setting_Menu_Draft.png", date: "Oct 15", url: "https://picsum.photos/seed/s12/800/600" },
+    { name: "API_Response_JSON.png", date: "Sep 20", url: "https://picsum.photos/seed/s13/800/600" },
+    { name: "Network_Tab_Profiling.jpg", date: "Aug 12", url: "https://picsum.photos/seed/s14/800/600" },
+    { name: "Git_Merge_Conflict.png", date: "Jul 25", url: "https://picsum.photos/seed/s15/800/600" },
+    { name: "New_Logo_Variant.png", date: "Jun 30", url: "https://picsum.photos/seed/s16/800/600" },
+    { name: "Button_Hover_Effects.png", date: "May 18", url: "https://picsum.photos/seed/s17/800/600" },
+    { name: "Sidebar_Collapsed.png", date: "Apr 12", url: "https://picsum.photos/seed/s18/800/600" },
+    { name: "Chat_Interface_Alpha.png", date: "Mar 15", url: "https://picsum.photos/seed/s19/800/600" },
+    { name: "Footer_Design_V3.png", date: "Feb 28", url: "https://picsum.photos/seed/s20/800/600" }
   ],
   Photos: [
-    { name: "Office_Desk_Setup.jpg", date: "Feb 10", url: "https://pngtree.com/freepng/best-fast-food-samosa_15743218.html" },
-    { name: "Team_Lunch_Offsite.png", date: "Jan 25", url: "https://picsum.photos/seed/p2/400" },
-    { name: "Product_Launch_Event.jpg", date: "Jan 10", url: "https://picsum.photos/seed/p3/400" },
-    { name: "New_HQ_Exterior.jpg", date: "Dec 15", url: "https://picsum.photos/seed/p4/400" },
-    { name: "Whiteboard_Brainstorm.png", date: "Nov 20", url: "https://picsum.photos/seed/p5/400" },
-    { name: "Coffee_Machine_Art.jpg", date: "Nov 05", url: "https://picsum.photos/seed/p6/400" },
-    { name: "Sunset_From_Balcony.jpg", date: "Oct 18", url: "https://picsum.photos/seed/p7/400" },
-    { name: "Lobby_Reception_Area.png", date: "Oct 02", url: "https://picsum.photos/seed/p8/400" },
-    { name: "Conference_Room_B.jpg", date: "Sep 15", url: "https://picsum.photos/seed/p9/400" },
-    { name: "Team_Retreat_Group.png", date: "Aug 28", url: "https://picsum.photos/seed/p10/400" },
-    { name: "Server_Rack_Install.jpg", date: "Aug 10", url: "https://picsum.photos/seed/p11/400" },
-    { name: "Morning_Workspace.png", date: "Jul 22", url: "https://picsum.photos/seed/p12/400" },
-    { name: "Holiday_Party_2024.jpg", date: "Dec 20", url: "https://picsum.photos/seed/p13/400" },
-    { name: "Client_Visit_Snapshot.png", date: "Jun 15", url: "https://picsum.photos/seed/p14/400" },
-    { name: "Award_Ceremony.jpg", date: "May 30", url: "https://picsum.photos/seed/p15/400" },
-    { name: "Studio_Backdrop.png", date: "Apr 25", url: "https://picsum.photos/seed/p16/400" },
-    { name: "Macro_Keyboard_Shot.jpg", date: "Mar 12", url: "https://picsum.photos/seed/p17/400" },
-    { name: "Event_Badges.png", date: "Feb 20", url: "https://picsum.photos/seed/p18/400" },
-    { name: "Speaker_Session_1.jpg", date: "Jan 18", url: "https://picsum.photos/seed/p19/400" },
-    { name: "Post-it_Idea_Wall.png", date: "Dec 05", url: "https://picsum.photos/seed/p20/400" }
+    { name: "Office_Desk_Setup.jpg", date: "Feb 10", url: "https://picsum.photos/seed/p1/800/600" },
+    { name: "Team_Lunch_Offsite.png", date: "Jan 25", url: "https://picsum.photos/seed/p2/800/600" },
+    { name: "Product_Launch_Event.jpg", date: "Jan 10", url: "https://picsum.photos/seed/p3/800/600" },
+    { name: "New_HQ_Exterior.jpg", date: "Dec 15", url: "https://picsum.photos/seed/p4/800/600" },
+    { name: "Whiteboard_Brainstorm.png", date: "Nov 20", url: "https://picsum.photos/seed/p5/800/600" },
+    { name: "Coffee_Machine_Art.jpg", date: "Nov 05", url: "https://picsum.photos/seed/p6/800/600" },
+    { name: "Sunset_From_Balcony.jpg", date: "Oct 18", url: "https://picsum.photos/seed/p7/800/600" },
+    { name: "Lobby_Reception_Area.png", date: "Oct 02", url: "https://picsum.photos/seed/p8/800/600" },
+    { name: "Conference_Room_B.jpg", date: "Sep 15", url: "https://picsum.photos/seed/p9/800/600" },
+    { name: "Team_Retreat_Group.png", date: "Aug 28", url: "https://picsum.photos/seed/p10/800/600" },
+    { name: "Server_Rack_Install.jpg", date: "Aug 10", url: "https://picsum.photos/seed/p11/800/600" },
+    { name: "Morning_Workspace.png", date: "Jul 22", url: "https://picsum.photos/seed/p12/800/600" },
+    { name: "Holiday_Party_2024.jpg", date: "Dec 20", url: "https://picsum.photos/seed/p13/800/600" },
+    { name: "Client_Visit_Snapshot.png", date: "Jun 15", url: "https://picsum.photos/seed/p14/800/600" },
+    { name: "Award_Ceremony.jpg", date: "May 30", url: "https://picsum.photos/seed/p15/800/600" },
+    { name: "Studio_Backdrop.png", date: "Apr 25", url: "https://picsum.photos/seed/p16/800/600" },
+    { name: "Macro_Keyboard_Shot.jpg", date: "Mar 12", url: "https://picsum.photos/seed/p17/800/600" },
+    { name: "Event_Badges.png", date: "Feb 20", url: "https://picsum.photos/seed/p18/800/600" },
+    { name: "Speaker_Session_1.jpg", date: "Jan 18", url: "https://picsum.photos/seed/p19/800/600" },
+    { name: "Post-it_Idea_Wall.png", date: "Dec 05", url: "https://picsum.photos/seed/p20/800/600" }
   ],
   "Secure Vault": [
     { name: "credentials.enc", date: "Mar 5", size: "1 KB", snippet: "ENCRYPTED_DATA_BLOB_PRIVATE_KEY_0x92..." },
@@ -139,17 +140,20 @@ export default function ContentHistoryView({ folder, onNavigate }: ContentHistor
   const [otpSent, setOtpSent] = useState(false);
   const [showToastBox, setShowToastBox] = useState(false);
 
+  // --- NEW STATE FOR DOCUMENT VIEWING ---
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+
   useEffect(() => {
-    if (folder !== "Secure Vault") {
-      setIsUnlocked(false);
-      setPhone("");
-      setPin("");
-      setShowPin(false);
-      setTimer(0);
-      setOtpSent(false);
-      setShowToastBox(false);
-      setCountryCode("+1");
-    }
+    // Reset viewing state and vault status when switching folders
+    setIsUnlocked(false);
+    setPhone("");
+    setPin("");
+    setShowPin(false);
+    setTimer(0);
+    setOtpSent(false);
+    setShowToastBox(false);
+    setCountryCode("+1");
+    setSelectedItem(null); 
   }, [folder]);
 
   useEffect(() => {
@@ -169,7 +173,6 @@ export default function ContentHistoryView({ folder, onNavigate }: ContentHistor
       setTimer(60);
       setOtpSent(true);
       setShowToastBox(true); 
-      console.log("OTP code sent to:", countryCode + phone);
     } else {
       alert("Please enter a valid 10-digit phone number first.");
     }
@@ -187,7 +190,10 @@ export default function ContentHistoryView({ folder, onNavigate }: ContentHistor
   const ListItem = ({ item, folderName }: { item: any, folderName: string }) => {
     const Icon = iconMap[folderName] || FileText;
     return (
-      <div className="group flex items-start gap-4 p-4 rounded-[20px] bg-card-bg border border-transparent hover:border-card-border hover:bg-card-hover transition-all cursor-pointer">
+      <div 
+        onClick={() => setSelectedItem(item)} // Handle selection
+        className="group flex items-start gap-4 p-4 rounded-[20px] bg-card-bg border border-transparent hover:border-card-border hover:bg-card-hover transition-all cursor-pointer"
+      >
         <div className="h-10 w-10 shrink-0 rounded-xl bg-icon-bg flex items-center justify-center">
           <Icon size={18} className="text-foreground/70" />
         </div>
@@ -210,7 +216,10 @@ export default function ContentHistoryView({ folder, onNavigate }: ContentHistor
   };
 
   const MediaPreviewItem = ({ item }: { item: any }) => (
-    <div className="relative group aspect-square rounded-[24px] overflow-hidden bg-card-bg border border-card-border hover:border-primary/50 transition-all cursor-pointer">
+    <div 
+        onClick={() => setSelectedItem(item)} // Handle selection
+        className="relative group aspect-square rounded-[24px] overflow-hidden bg-card-bg border border-card-border hover:border-primary/50 transition-all cursor-pointer"
+    >
       <img src={item.url} alt={item.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
         <p className="text-[10px] text-white truncate font-medium">{item.name}</p>
@@ -226,6 +235,11 @@ export default function ContentHistoryView({ folder, onNavigate }: ContentHistor
       (item.snippet && item.snippet.toLowerCase().includes(term))
     );
   };
+
+  // --- NEW RENDER LOGIC: IF AN ITEM IS SELECTED, SHOW VIEWER ---
+  if (selectedItem) {
+    return <DocumentViewer item={selectedItem} onBack={() => setSelectedItem(null)} />;
+  }
 
   const isDashboard = folder === "All" || !folder;
   const isVault = folder === "Secure Vault";
@@ -299,22 +313,6 @@ export default function ContentHistoryView({ folder, onNavigate }: ContentHistor
                     </button>
                   </div>
                 </div>
-                {otpSent && (
-                   <div className="mt-2 flex justify-between items-center px-1">
-                     <span className="text-[11px] text-muted-foreground">
-                        {timer > 0 ? `Resend in ${timer}s` : "Didn't receive code?"}
-                     </span>
-                     {timer === 0 && (
-                       <button
-                         type="button"
-                         onClick={handleGetOTP}
-                         className="text-[11px] font-bold text-primary hover:underline"
-                       >
-                         Resend OTP?
-                       </button>
-                     )}
-                   </div>
-                )}
               </div>
               <div className="relative">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1 mb-1.5 block">4-Digit PIN</label>

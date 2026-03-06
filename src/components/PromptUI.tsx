@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, ArrowRight, Code, FileText, Camera, Image, Paperclip } from "lucide-react";
-
+import { Plus, ArrowRight, Code, FileText, Camera, Image, Paperclip, X } from "lucide-react"; // Added X icon
 
 const attachOptions = [
   { name: "Code", icon: Code, features: [
@@ -30,6 +29,7 @@ export default function PromptUI() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]); // New state for files
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -42,6 +42,11 @@ export default function PromptUI() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  // Helper to remove a file
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <div className="w-full max-w-2xl mx-auto px-4">
@@ -112,10 +117,10 @@ export default function PromptUI() {
           )}
         </div>
 
-        {/* Attachment */}
+        {/* Attachment button */}
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="p-2.5 rounded-xl hover:bg-accent text-muted-foreground hover:text-accent-foreground transition-colors"
+          className={`p-2.5 rounded-xl hover:bg-accent transition-colors ${attachedFiles.length > 0 ? "text-primary" : "text-muted-foreground hover:text-accent-foreground"}`}
           aria-label="Attach file"
         >
           <Paperclip size={20} />
@@ -126,28 +131,45 @@ export default function PromptUI() {
           multiple
           className="hidden"
           onChange={(e) => {
-            // Handle files - for now just log
             const files = e.target.files;
             if (files && files.length > 0) {
-              console.log("Selected files:", Array.from(files).map(f => f.name));
+              setAttachedFiles(prev => [...prev, ...Array.from(files)]); // Store the actual files
             }
-            e.target.value = "";
+            e.target.value = ""; // Clear input so same file can be re-selected
           }}
         />
 
-        {/* Input */}
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Type your prompt..."
-          className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground px-2 py-2"
-        />
+        {/* Input & File Chips Container */}
+        <div className="flex-1 flex items-center gap-2 min-w-0 px-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {attachedFiles.map((file, idx) => (
+            <div 
+              key={`${file.name}-${idx}`} 
+              className="flex items-center gap-1.5 bg-accent text-accent-foreground px-2 py-1 rounded-lg text-[11px] font-medium shrink-0 animate-in zoom-in duration-200"
+            >
+              <span className="truncate max-w-[100px]">{file.name}</span>
+              <button 
+                onClick={() => removeFile(idx)}
+                className="hover:text-destructive transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+          
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder={attachedFiles.length > 0 ? "" : "Type your prompt..."}
+            className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground py-2 min-w-[80px]"
+          />
+        </div>
 
         {/* Send */}
         <button
-          className="p-2.5 rounded-xl bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+          className="p-2.5 rounded-xl bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Send"
+          disabled={!inputValue.trim() && attachedFiles.length === 0}
         >
           <ArrowRight size={20} />
         </button>
