@@ -42,18 +42,17 @@
 
 :root {
     /* Gemini-style Light Mode: Crisp & Clean */
-    --radius: 1.25rem; /* Increased default radius for that modern rounded look */
+    --radius: 1.25rem; 
 
-    --background: oklch(0.99 0.005 260); /* Very faint off-white */
-    --foreground: oklch(0.25 0.02 260); /* Deep charcoal text */
+    --background: oklch(0.99 0.005 260); 
+    --foreground: oklch(0.25 0.02 260); 
 
-    --card: oklch(1 0 0); /* Pure white cards */
+    --card: oklch(1 0 0); 
     --card-foreground: oklch(0.25 0.02 260);
 
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.25 0.02 260);
 
-    /* Indigo Primary */
     --primary: oklch(0.55 0.22 275);
     --primary-foreground: oklch(0.99 0 0);
 
@@ -67,7 +66,7 @@
     --accent-foreground: oklch(0.25 0.02 260);
 
     --destructive: oklch(0.6 0.2 25);
-    --border: oklch(0.92 0.01 260); /* Subtle dividers */
+    --border: oklch(0.92 0.01 260); 
     --input: oklch(0.92 0.01 260);
     --ring: oklch(0.55 0.22 275);
 
@@ -84,16 +83,16 @@
 
 .dark {
     /* Gemini-style Dark Mode: Deep & Minimal */
-    --background: oklch(0.08 0 0); /* Almost pure black */
-    --foreground: oklch(0.9 0.01 260); /* Soft white text */
+    --background: oklch(0.08 0 0); 
+    --foreground: oklch(0.9 0.01 260); 
 
-    --card: oklch(0.14 0.01 260); /* Deep charcoal cards */
+    --card: oklch(0.14 0.01 260); 
     --card-foreground: oklch(0.9 0.01 260);
 
     --popover: oklch(0.14 0.01 260);
     --popover-foreground: oklch(0.9 0.01 260);
 
-    --primary: oklch(0.7 0.18 275); /* Vibrant indigo */
+    --primary: oklch(0.7 0.18 275); 
     --primary-foreground: oklch(0.1 0 0);
 
     --secondary: oklch(0.2 0.01 260);
@@ -106,7 +105,7 @@
     --accent-foreground: oklch(0.95 0.01 260);
 
     --destructive: oklch(0.55 0.2 25);
-    --border: oklch(0.18 0.01 260); /* Very subtle gray borders */
+    --border: oklch(0.18 0.01 260); 
     --input: oklch(0.18 0.01 260);
     --ring: oklch(0.7 0.18 275);
 
@@ -130,20 +129,25 @@
     }
 }
 
-/* Specific component styles for the Gemini look */
 @layer components {
-  /* Document and Code Cards */
   .content-card {
     @apply bg-card border border-border/40 hover:border-border/80 hover:bg-accent/30 transition-all duration-300 rounded-[24px];
   }
 
-  /* Buttons */
   button {
     @apply cursor-pointer transition-all duration-200 ease-in-out active:scale-[0.97];
   }
 
-  /* Search Input Focus */
   .search-input {
     @apply bg-card border-border/50 focus:border-primary/40 focus:bg-background transition-all;
   }
+}
+
+/* THEME FIX: Force Sidebar to use variables regardless of hardcoded Tailwind classes */
+aside, 
+[role="complementary"], 
+[data-sidebar="sidebar"] {
+  background-color: var(--sidebar) !important;
+  color: var(--sidebar-foreground) !important;
+  border-color: var(--sidebar-border) !important;
 }
