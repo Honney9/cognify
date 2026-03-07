@@ -1,5 +1,5 @@
 import { runModel } from "./ai/modelRegistry"
-import { runLLM } from "./ai/llmmodel"
+import { runLLM } from "./ai/llmModel"
 
 type ContentType =
   | "code"

@@ -4,6 +4,7 @@ import AppSidebar from "@/components/AppSidebar";
 import PromptUI from "@/components/PromptUI";
 import ChatView from "@/components/ChatView";
 import ContentHistoryView from "@/components/ContentHistoryView";
+import ModelManager from "@/components/ModelManager";
 
 type View = "prompt" | "chat" | { folder: string };
 
@@ -26,6 +27,7 @@ const Index = () => {
 
   return (
     <div className="h-screen w-full bg-background flex overflow-hidden">
+      <ModelManager />
       <AppSidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(false)}
