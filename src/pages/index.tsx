@@ -51,9 +51,6 @@ const Index = () => {
 
   return (
     <div className="h-screen w-full bg-background flex overflow-hidden">
-<<<<<<< Updated upstream
-      <ModelManager />
-=======
       
       {/* GLOBAL VIEWER OVERLAY */}
       {viewingFile && (
@@ -98,7 +95,6 @@ const Index = () => {
         </div>
       )}
 
->>>>>>> Stashed changes
       <AppSidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(false)}
