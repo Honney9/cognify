@@ -1,74 +1,87 @@
-// src/services/orchestrator.ts
+import { runModel } from "./ai/modelRegistry"
+import { runLLM } from "./ai/llmmodel"
 
-import { loadTextModel, loadVisionModel } from "../runanywhere";
-import { analyzeCode } from "../ai/codeAI";
-import { analyzeDocument } from "../ai/documentAI";
-import { analyzeVision } from "../ai/visionAI";
-import { runPrivacyScan } from "../wasm/privacyRules";
+type ContentType =
+  | "code"
+  | "document"
+  | "screenshot"
+  | "photo"
 
-export type CognifyInput =
-  | { type: "code"; data: string }
-  | { type: "document"; data: File }
-  | { type: "photo"; data: File }
-  | { type: "screenshot"; data: File };
+export async function analyzeContent(
+  type: ContentType,
+  input: any
+) {
 
-export class CognifyOrchestrator {
-  async analyze(input: CognifyInput) {
-    switch (input.type) {
-      case "code":
-        return this.handleCode(input.data);
+  try {
 
-      case "document":
-        return this.handleDocument(input.data);
+    let modelResult: any
+    let reasoning: string | null = null
 
-      case "photo":
-        return this.handleVision(input.data, "photo");
+    // Run the appropriate ML model
+    modelResult = await runModel(type, input)
 
-      case "screenshot":
-        return this.handleVision(input.data, "screenshot");
+    // Optional LLM reasoning layer
+    if (type === "code" || type === "document") {
 
-      default:
-        throw new Error("Unsupported input type");
+      reasoning = await runLLM(`
+      Analyze the following AI output and explain it clearly.
+
+      ${JSON.stringify(modelResult)}
+
+      Provide:
+      - summary
+      - risks
+      - improvements
+      `)
+
     }
-  }
 
-  // -----------------------------
-  // Handlers
-  // -----------------------------
+    if (type === "screenshot") {
 
-  private async handleCode(code: string) {
-    
-    // 2️⃣ Run AI analysis
-    const aiResult = await analyzeCode(code);
+      reasoning = await runLLM(`
+      Based on this screenshot analysis:
+
+      ${JSON.stringify(modelResult)}
+
+      Identify:
+      - sensitive data
+      - privacy risks
+      - recommended actions
+      `)
+
+    }
+
+    if (type === "photo") {
+
+      reasoning = await runLLM(`
+      Based on detected objects:
+
+      ${JSON.stringify(modelResult)}
+
+      Determine the scene such as:
+      - birthday celebration
+      - meeting
+      - study session
+      - travel
+
+      Provide scene explanation.
+      `)
+
+    }
 
     return {
-      type: "code",
-      result: aiResult,
-    };
-  }
+      success: true,
+      modelOutput: modelResult,
+      reasoning
+    }
 
-  private async handleDocument(file: File) {
-    
-    const privacy = await runPrivacyScan(file);
-    const aiResult = await analyzeDocument(file);
+  } catch (error) {
 
     return {
-      type: "document",
-      privacy,
-      result: aiResult,
-    };
+      success: false,
+      error: String(error)
+    }
+
   }
 
-  private async handleVision(file: File, mode: "photo" | "screenshot") {
-    
-
-    const privacy = await runPrivacyScan(file);
-    const aiResult = await analyzeVision(file, { mode });
-
-    return {
-      type: mode,
-      privacy,
-      result: aiResult,
-    };
-  }
 }

@@ -1,30 +1,28 @@
 import { useState } from "react"
 
-export function usePhotoAnalysis() {
+export function useLLM() {
 
-  const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<string | null>(null)
 
-  async function analyze(image: ImageBitmap) {
+  async function run(prompt: string) {
 
     setLoading(true)
 
     const worker = new Worker(
-      new URL("../workers/vision.worker.ts", import.meta.url),
+      new URL("../workers/llm.worker.ts", import.meta.url),
       { type: "module" }
     )
 
-    worker.postMessage({ image })
+    worker.postMessage({ prompt })
 
     worker.onmessage = (e) => {
-
       setResult(e.data.result)
       setLoading(false)
       worker.terminate()
-
     }
 
   }
 
-  return { analyze, loading, result }
+  return { run, loading, result }
 }

@@ -1,12 +1,12 @@
-import { runVisionModel } from "@/services/ai/visionModel"
+import { runLLM } from "@/services/ai/llmModel"
 
 self.onmessage = async (event: MessageEvent) => {
 
-  const { image } = event.data
+  const { prompt } = event.data
 
   try {
 
-    const result = await runVisionModel(image)
+    const result = await runLLM(prompt)
 
     self.postMessage({
       success: true,

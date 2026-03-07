@@ -1,267 +1,306 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { ModelCategory, VideoCapture } from '@runanywhere/web';
-import { VLMWorkerBridge } from '@runanywhere/web-llamacpp';
-import { useModelLoader } from '../hooks/useModelLoader';
-import { ModelBanner } from './ChatView';
+import { useState, useRef, useEffect, useCallback } from "react"
+import { ModelCategory, VideoCapture } from "@runanywhere/web"
+import { VLMWorkerBridge } from "@runanywhere/web-llamacpp"
+import { useModelLoader } from "@/hooks/useModelLoader"
+import ChatView from "@/components/ChatView"
 
-const LIVE_INTERVAL_MS = 2500;
-const LIVE_MAX_TOKENS = 30;
-const SINGLE_MAX_TOKENS = 80;
-const CAPTURE_DIM = 256; // CLIP resizes internally; larger is wasted work
+const LIVE_INTERVAL_MS = 2500
+const LIVE_MAX_TOKENS = 30
+const SINGLE_MAX_TOKENS = 80
+const CAPTURE_DIM = 256
 
 interface VisionResult {
-  text: string;
-  totalMs: number;
+  text: string
+  totalMs: number
 }
 
 export function VisionTab() {
-  const loader = useModelLoader(ModelCategory.Multimodal);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  const [liveMode, setLiveMode] = useState(false);
-  const [result, setResult] = useState<VisionResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [prompt, setPrompt] = useState('Describe what you see briefly.');
 
-  const videoMountRef = useRef<HTMLDivElement>(null);
-  const captureRef = useRef<VideoCapture | null>(null);
-  const processingRef = useRef(false);
-  const liveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const liveModeRef = useRef(false);
+  const loader = useModelLoader(ModelCategory.Multimodal)
 
-  // Keep refs in sync with state so interval callbacks see latest values
-  processingRef.current = processing;
-  liveModeRef.current = liveMode;
+  const [cameraActive, setCameraActive] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const [liveMode, setLiveMode] = useState(false)
+  const [result, setResult] = useState<VisionResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [prompt, setPrompt] = useState("Describe what you see briefly.")
 
-  // ------------------------------------------------------------------
-  // Camera
-  // ------------------------------------------------------------------
+  const videoMountRef = useRef<HTMLDivElement>(null)
+  const captureRef = useRef<VideoCapture | null>(null)
+  const liveIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  const processingRef = useRef(false)
+  const liveModeRef = useRef(false)
+
+  processingRef.current = processing
+  liveModeRef.current = liveMode
+
+  // -----------------------------
+  // Start Camera
+  // -----------------------------
   const startCamera = useCallback(async () => {
-    if (captureRef.current?.isCapturing) return;
 
-    setError(null);
+    if (captureRef.current?.isCapturing) return
 
     try {
-      const cam = new VideoCapture({ facingMode: 'environment' });
-      await cam.start();
-      captureRef.current = cam;
 
-      const mount = videoMountRef.current;
-      if (mount) {
-        const el = cam.videoElement;
-        el.style.width = '100%';
-        el.style.borderRadius = '12px';
-        mount.appendChild(el);
+      const cam = new VideoCapture({ facingMode: "environment" })
+      await cam.start()
+
+      captureRef.current = cam
+
+      if (videoMountRef.current) {
+
+        const video = cam.videoElement
+        video.style.width = "100%"
+        video.style.borderRadius = "12px"
+
+        videoMountRef.current.appendChild(video)
       }
 
-      setCameraActive(true);
+      setCameraActive(true)
+
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
 
-      if (msg.includes('NotAllowed') || msg.includes('Permission')) {
-        setError(
-          'Camera permission denied. On macOS, check System Settings → Privacy & Security → Camera and ensure your browser is allowed.',
-        );
-      } else if (msg.includes('NotFound') || msg.includes('DevicesNotFound')) {
-        setError('No camera found on this device.');
-      } else if (msg.includes('NotReadable') || msg.includes('TrackStartError')) {
-        setError('Camera is in use by another application.');
-      } else {
-        setError(`Camera error: ${msg}`);
-      }
+      const msg = err instanceof Error ? err.message : String(err)
+      setError(msg)
+
     }
-  }, []);
 
-  // Cleanup on unmount
+  }, [])
+
+  // -----------------------------
+  // Cleanup
+  // -----------------------------
   useEffect(() => {
+
     return () => {
-      if (liveIntervalRef.current) clearInterval(liveIntervalRef.current);
-      const cam = captureRef.current;
+
+      if (liveIntervalRef.current)
+        clearInterval(liveIntervalRef.current)
+
+      const cam = captureRef.current
+
       if (cam) {
-        cam.stop();
-        cam.videoElement.parentNode?.removeChild(cam.videoElement);
-        captureRef.current = null;
+
+        cam.stop()
+
+        cam.videoElement?.remove()
+
+        captureRef.current = null
       }
-    };
-  }, []);
 
-  // ------------------------------------------------------------------
-  // Core: capture + infer
-  // ------------------------------------------------------------------
-  const describeFrame = useCallback(async (maxTokens: number) => {
-    if (processingRef.current) return;
-
-    const cam = captureRef.current;
-    if (!cam?.isCapturing) return;
-
-    // Ensure model loaded
-    if (loader.state !== 'ready') {
-      const ok = await loader.ensure();
-      if (!ok) return;
     }
 
-    const frame = cam.captureFrame(CAPTURE_DIM);
-    if (!frame) return;
+  }, [])
 
-    setProcessing(true);
-    processingRef.current = true;
-    setError(null);
+  // -----------------------------
+  // Vision Inference
+  // -----------------------------
+  const describeFrame = useCallback(async (maxTokens: number) => {
 
-    const t0 = performance.now();
+    if (processingRef.current) return
+
+    const cam = captureRef.current
+    if (!cam?.isCapturing) return
+
+    if (loader.state !== "ready") {
+
+      const ok = await loader.ensure()
+      if (!ok) return
+
+    }
+
+    const frame = cam.captureFrame(CAPTURE_DIM)
+    if (!frame) return
+
+    setProcessing(true)
+    setError(null)
+
+    processingRef.current = true
+
+    const start = performance.now()
 
     try {
-      const bridge = VLMWorkerBridge.shared;
-      if (!bridge.isModelLoaded) {
-        throw new Error('VLM model not loaded in worker');
-      }
+
+      const bridge = VLMWorkerBridge.shared
 
       const res = await bridge.process(
         frame.rgbPixels,
         frame.width,
         frame.height,
         prompt,
-        { maxTokens, temperature: 0.6 },
-      );
+        { maxTokens, temperature: 0.6 }
+      )
 
-      setResult({ text: res.text, totalMs: performance.now() - t0 });
+      setResult({
+        text: res.text,
+        totalMs: performance.now() - start
+      })
+
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const isWasmCrash = msg.includes('memory access out of bounds')
-        || msg.includes('RuntimeError');
 
-      if (isWasmCrash) {
-        setResult({ text: 'Recovering from memory error... next frame will retry.', totalMs: 0 });
-      } else {
-        setError(msg);
-        if (liveModeRef.current) stopLive();
-      }
+      const msg = err instanceof Error ? err.message : String(err)
+      setError(msg)
+
     } finally {
-      setProcessing(false);
-      processingRef.current = false;
-    }
-  }, [loader, prompt]);
 
-  // ------------------------------------------------------------------
-  // Single-shot
-  // ------------------------------------------------------------------
+      setProcessing(false)
+      processingRef.current = false
+
+    }
+
+  }, [loader, prompt])
+
+  // -----------------------------
+  // Single Frame
+  // -----------------------------
   const describeSingle = useCallback(async () => {
-    if (!captureRef.current?.isCapturing) {
-      await startCamera();
-      return;
-    }
-    await describeFrame(SINGLE_MAX_TOKENS);
-  }, [startCamera, describeFrame]);
 
-  // ------------------------------------------------------------------
-  // Live mode
-  // ------------------------------------------------------------------
+    if (!captureRef.current?.isCapturing) {
+      await startCamera()
+      return
+    }
+
+    await describeFrame(SINGLE_MAX_TOKENS)
+
+  }, [startCamera, describeFrame])
+
+  // -----------------------------
+  // Live Mode
+  // -----------------------------
   const startLive = useCallback(async () => {
-    if (!captureRef.current?.isCapturing) {
-      await startCamera();
-    }
 
-    setLiveMode(true);
-    liveModeRef.current = true;
+    if (!captureRef.current?.isCapturing)
+      await startCamera()
 
-    // Immediately describe first frame
-    describeFrame(LIVE_MAX_TOKENS);
+    setLiveMode(true)
 
-    // Then poll every 2.5s — skips ticks while inference is running
+    describeFrame(LIVE_MAX_TOKENS)
+
     liveIntervalRef.current = setInterval(() => {
-      if (!processingRef.current && liveModeRef.current) {
-        describeFrame(LIVE_MAX_TOKENS);
-      }
-    }, LIVE_INTERVAL_MS);
-  }, [startCamera, describeFrame]);
+
+      if (!processingRef.current)
+        describeFrame(LIVE_MAX_TOKENS)
+
+    }, LIVE_INTERVAL_MS)
+
+  }, [startCamera, describeFrame])
 
   const stopLive = useCallback(() => {
-    setLiveMode(false);
-    liveModeRef.current = false;
+
+    setLiveMode(false)
+
     if (liveIntervalRef.current) {
-      clearInterval(liveIntervalRef.current);
-      liveIntervalRef.current = null;
-    }
-  }, []);
 
-  const toggleLive = useCallback(() => {
-    if (liveMode) {
-      stopLive();
-    } else {
-      startLive();
-    }
-  }, [liveMode, startLive, stopLive]);
+      clearInterval(liveIntervalRef.current)
+      liveIntervalRef.current = null
 
-  // ------------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------------
+    }
+
+  }, [])
+
+  const toggleLive = () => {
+
+    if (liveMode)
+      stopLive()
+    else
+      startLive()
+
+  }
+
+  // -----------------------------
+  // UI
+  // -----------------------------
   return (
-    <div className="tab-panel vision-panel">
-      <ModelBanner
+
+    <div className="p-6 space-y-6">
+
+      <ChatView
         state={loader.state}
         progress={loader.progress}
         error={loader.error}
         onLoad={loader.ensure}
-        label="VLM"
+        label="Vision Model"
       />
 
-      <div className="vision-camera">
+      <div className="rounded-xl border p-4">
+
         {!cameraActive && (
-          <div className="empty-state">
-            <h3>📷 Camera Preview</h3>
-            <p>Tap below to start the camera</p>
+          <div className="text-center text-gray-400">
+            Start camera to analyze images
           </div>
         )}
+
         <div ref={videoMountRef} />
+
       </div>
 
       <input
-        className="vision-prompt"
-        type="text"
-        placeholder="What do you want to know about the image?"
+        className="w-full border rounded p-2"
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
         disabled={liveMode}
       />
 
-      <div className="vision-actions">
+      <div className="flex gap-3">
+
         {!cameraActive ? (
-          <button className="btn btn-primary" onClick={startCamera}>Start Camera</button>
+
+          <button
+            className="px-4 py-2 bg-blue-500 text-white rounded"
+            onClick={startCamera}
+          >
+            Start Camera
+          </button>
+
         ) : (
+
           <>
             <button
-              className="btn btn-primary"
               onClick={describeSingle}
               disabled={processing || liveMode}
+              className="px-4 py-2 bg-green-500 text-white rounded"
             >
-              {processing && !liveMode ? 'Analyzing...' : 'Describe'}
+              {processing ? "Analyzing..." : "Describe"}
             </button>
+
             <button
-              className={`btn ${liveMode ? 'btn-live-active' : ''}`}
               onClick={toggleLive}
-              disabled={processing && !liveMode}
+              className="px-4 py-2 bg-purple-500 text-white rounded"
             >
-              {liveMode ? '⏹ Stop Live' : '▶ Live'}
+              {liveMode ? "Stop Live" : "Live Mode"}
             </button>
           </>
+
         )}
+
       </div>
 
       {error && (
-        <div className="vision-result">
-          <span className="error-text">Error: {error}</span>
+        <div className="text-red-500">
+          Error: {error}
         </div>
       )}
 
       {result && (
-        <div className="vision-result">
-          {liveMode && <span className="live-badge">LIVE</span>}
-          <h4>Result</h4>
+
+        <div className="border rounded p-4">
+
+          <h3 className="font-semibold mb-2">Result</h3>
+
           <p>{result.text}</p>
-          {result.totalMs > 0 && (
-            <div className="message-stats">{(result.totalMs / 1000).toFixed(1)}s</div>
-          )}
+
+          <p className="text-sm text-gray-400 mt-2">
+            {(result.totalMs / 1000).toFixed(2)}s
+          </p>
+
         </div>
+
       )}
+
     </div>
-  );
+
+  )
+
 }

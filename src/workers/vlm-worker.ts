@@ -1,10 +1,30 @@
-/**
- * VLM Web Worker entry point.
- *
- * This file is bundled by Vite as a standalone worker chunk via the
- * `?worker&url` import in runanywhere.ts. All VLM inference runs off
- * the main thread so the camera and UI stay responsive.
- */
-import { startVLMWorkerRuntime } from '@runanywhere/web-llamacpp';
+import { runMobileNet } from "@/services/ai/mobilenetModel"
+import { runDeepfakeModel } from "@/services/ai/deepfakeModel"
 
-startVLMWorkerRuntime();
+self.onmessage = async (event: MessageEvent) => {
+
+  const { image } = event.data
+
+  try {
+
+    const mobile = await runMobileNet(image)
+    const efficient = await runDeepfakeModel(image)
+
+    self.postMessage({
+      success: true,
+      result: {
+        mobilenet: mobile,
+        efficientnet: efficient
+      }
+    })
+
+  } catch (err) {
+
+    self.postMessage({
+      success: false,
+      error: (err as Error).message
+    })
+
+  }
+
+}

@@ -1,29 +1,36 @@
 import { useState } from "react"
 import { runModel } from "@/services/ai/modelRegistry"
 
-export function useDocumentAnalysis() {
+export function useScreenshotAnalysis() {
 
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
-  async function analyzeDocument(text: string) {
+  async function analyzeImage(file: File) {
 
     setLoading(true)
 
     try {
-      const res = await runModel("document", text)
+
+      const bitmap = await createImageBitmap(file)
+
+      const res = await runModel("photo", bitmap)
+
       setResult(res)
-    } 
-    catch (err) {
+
+    } catch (err) {
+
       console.error(err)
-    } 
-    finally {
+
+    } finally {
+
       setLoading(false)
+
     }
   }
 
   return {
-    analyzeDocument,
+    analyzeImage,
     result,
     loading
   }

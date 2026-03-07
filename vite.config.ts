@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from "vite-plugin-pwa"
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -61,7 +62,31 @@ function copyWasmPlugin(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), copyWasmPlugin(), tailwindcss()],
+  plugins: [react(), copyWasmPlugin(), tailwindcss(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: [
+        "models/*",
+        "assets/*.wasm",
+        "assets/*.js",
+        "assets/sherpa/*"
+      ],
+      workbox: {
+        globPatterns: [
+          "**/*.{js,css,html,wasm,png,svg,ico,json}"
+        ]
+      },
+      manifest: {
+        name: "Cognify",
+        short_name: "Cognify",
+        description: "Offline Privacy AI Productivity Suite",
+        display: "standalone",
+        start_url: "/",
+        background_color: "#0f172a",
+        theme_color: "#0f172a"
+      }
+    })
+  ],
   server: {
     headers: {
       // Cross-Origin Isolation — required for SharedArrayBuffer / multi-threaded WASM.

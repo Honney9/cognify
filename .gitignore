@@ -5,3 +5,41 @@ dist/
 *.tsbuildinfo
 .playwright-mcp/
 *.png
+
+===============================
+AI / ML Models
+===============================
+
+public/models/*
+
+===============================
+WASM / Compiled Artifacts
+===============================
+
+*.wasm
+*.wasm.map
+
+===============================
+Temporary Files
+===============================
+
+tmp/
+temp/
+*.tmp
+
+===============================
+Testing
+===============================
+
+coverage/
+jest-cache/
+
+===============================
+Local Runtime Data
+===============================
+
+localStorage/
+models-cache/
+downloads/
+
+
