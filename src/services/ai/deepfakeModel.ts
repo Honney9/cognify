@@ -1,47 +1,66 @@
-import * as ort from "onnxruntime-web"
+import * as ort from "onnxruntime-web";
 
-let session: ort.InferenceSession | null = null
+ort.env.wasm.numThreads = 1; 
+ort.env.wasm.wasmPaths = {
+  'ort-wasm-simd-threaded.wasm': '/ort-wasm-simd-threaded.wasm',
+  'ort-wasm-simd.wasm': '/ort-wasm-simd.wasm',
+  'ort-wasm.wasm': '/ort-wasm.wasm',
+  'ort-wasm-simd-threaded.jsep.wasm': '/ort-wasm-simd-threaded.jsep.wasm'
+};
+
+let session: ort.InferenceSession | null = null;
 
 async function loadModel() {
-
   if (!session) {
-    session = await ort.InferenceSession.create("/models/efficientnet.onnx")
-  }
+    // FIX: Using the exact spelling from your folder structure
+    const modelPath = "/models/effecientnet.onnx";
+    console.log(`[DeepfakeModel] Loading model from: ${modelPath}`);
 
-  return session
+    session = await ort.InferenceSession.create(modelPath, {
+      executionProviders: ["wasm"], // CPU only
+    });
+  }
+  return session;
 }
 
-function preprocessImage(image: ImageBitmap) {
+async function preprocessImage(imageBitmap: ImageBitmap) {
+  const width = 224;
+  const height = 224;
+  const canvas = new OffscreenCanvas(width, height);
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(imageBitmap, 0, 0, width, height);
 
-  const canvas = document.createElement("canvas")
-  canvas.width = 224
-  canvas.height = 224
+  const imgData = ctx.getImageData(0, 0, width, height).data;
+  const floatData = new Float32Array(width * height * 3);
 
-  const ctx = canvas.getContext("2d")!
-  ctx.drawImage(image, 0, 0, 224, 224)
-
-  const imgData = ctx.getImageData(0, 0, 224, 224).data
-
-  const floatData = new Float32Array(3 * 224 * 224)
-
-  for (let i = 0; i < 224 * 224; i++) {
-
-    floatData[i] = imgData[i * 4] / 255
-    floatData[i + 224 * 224] = imgData[i * 4 + 1] / 255
-    floatData[i + 2 * 224 * 224] = imgData[i * 4 + 2] / 255
-
+  for (let i = 0; i < width * height; i++) {
+    floatData[i * 3] = imgData[i * 4] / 255.0;
+    floatData[i * 3 + 1] = imgData[i * 4 + 1] / 255.0;
+    floatData[i * 3 + 2] = imgData[i * 4 + 2] / 255.0;
   }
-
-  return new ort.Tensor("float32", floatData, [1, 3, 224, 224])
+  return new ort.Tensor("float32", floatData, [1, width, height, 3]);
 }
 
-export async function runDeepfakeModel(image: ImageBitmap) {
+export async function runDeepfakeModel(imageFile: File | Blob) {
+  try {
+    const model = await loadModel();
+    const imageBitmap = await createImageBitmap(imageFile);
+    const tensor = await preprocessImage(imageBitmap);
 
-  const model = await loadModel()
+    const feeds: any = {};
+    if (model.inputNames.includes('images:0')) feeds['images:0'] = tensor;
+    else if (model.inputNames.includes('input')) feeds.input = tensor;
+    else feeds[model.inputNames[0]] = tensor;
 
-  const tensor = preprocessImage(image)
-
-  const results = await model.run({ input: tensor })
-
-  return results
+    const results = await model.run(feeds);
+    
+    const output: any = {};
+    for (const key of Object.keys(results)) {
+      output[key] = Array.from(results[key].data as Float32Array).slice(0, 10);
+    }
+    return output;
+  } catch (error) {
+    console.error("[DeepfakeModel] Inference error:", error);
+    throw error;
+  }
 }

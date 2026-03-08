@@ -9,15 +9,13 @@ import { VitePWA } from "vite-plugin-pwa"
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 
 /**
- * Copies WASM binaries from the @runanywhere npm packages into dist/assets/
- * so they're served alongside the bundled JS at runtime.
- *
- * In dev mode, Vite serves node_modules directly so this only
- * matters for production builds.
+ * Copies WASM binaries from the @runanywhere and onnxruntime-web npm packages 
+ * into dist/assets/ so they're served alongside the bundled JS at runtime.
  */
 function copyWasmPlugin(): Plugin {
   const llamacppWasm = path.resolve(__dir, 'node_modules/@runanywhere/web-llamacpp/wasm');
   const onnxWasm = path.resolve(__dir, 'node_modules/@runanywhere/web-onnx/wasm');
+  const ortWasm = path.resolve(__dir, 'node_modules/onnxruntime-web/dist'); // Added ORT path
 
   return {
     name: 'copy-wasm',
@@ -57,6 +55,18 @@ function copyWasmPlugin(): Plugin {
           console.log(`  ✓ Copied sherpa/${file} (${sizeMB} MB)`);
         }
       }
+
+      // ONNX Runtime Web: Copy standard WASM binaries AND .mjs glue files
+      if (fs.existsSync(ortWasm)) {
+        // FIX: Include .mjs files alongside .wasm files
+        const files = fs.readdirSync(ortWasm).filter(f => f.endsWith('.wasm') || f.endsWith('.mjs'));
+        for (const file of files) {
+          const src = path.join(ortWasm, file);
+          fs.copyFileSync(src, path.join(assetsDir, file));
+          const sizeMB = (fs.statSync(src).size / 1_000_000).toFixed(1);
+          console.log(`  ✓ Copied onnxruntime/${file} (${sizeMB} MB)`);
+        }
+      }
     },
   };
 }
@@ -90,7 +100,6 @@ export default defineConfig({
   server: {
     headers: {
       // Cross-Origin Isolation — required for SharedArrayBuffer / multi-threaded WASM.
-      // Without these headers the SDK falls back to single-threaded mode.
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'credentialless',
     },
@@ -98,14 +107,17 @@ export default defineConfig({
   assetsInclude: ['**/*.wasm'],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "src"),
+      "@": path.resolve(__dir, "src"), // Corrected from __dirname to __dir for ESM consistency
     },
   },
   worker: { format: 'es' },
   optimizeDeps: {
-    // Exclude WASM-bearing packages from pre-bundling so their
-    // import.meta.url resolves correctly to node_modules paths
-    // (needed for automatic WASM file discovery at ../../wasm/).
-    exclude: ['@runanywhere/web-llamacpp', '@runanywhere/web-onnx', "@mlc-ai/web-llm"],
+    // Exclude WASM-bearing packages from pre-bundling
+    exclude: [
+      '@runanywhere/web-llamacpp', 
+      '@runanywhere/web-onnx', 
+      "@mlc-ai/web-llm", 
+      "onnxruntime-web" // Added this to prevent the MIME type/HTML response error
+    ],
   },
 });

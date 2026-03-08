@@ -5,119 +5,111 @@ import PromptUI from "@/components/PromptUI";
 import ChatView, { Message } from "@/components/ChatView";
 import ContentHistoryView from "@/components/ContentHistoryView";
 import ModelManager from "@/components/ModelManager";
-import { saveFileOffline } from "@/services/db"; // Import the offline storage service
-import { useCognify } from "@/hooks/useCognify"
-
+import { saveFileOffline } from "@/services/db"; 
+import { useCognify } from "@/hooks/useCognify";
 
 type View = "prompt" | "chat" | { folder: string };
 
+// This matches the data structure returned by the Worker
 type AIResponse = {
-  success: boolean
-  result?: string
-  error?: string
-}
+  success: boolean;
+  result?: string;
+  error?: string;
+  modelOutput?: any;
+};
 
 const Index = () => {
+  // UI State
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isDark, setIsDark] = useState(false);
   const [view, setView] = useState<View>("prompt");
   const [sessionKey, setSessionKey] = useState(0);
 
+  // Chat State
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   
-  // SHARED STATE FOR VIEWING DOCUMENTS (Works for local files and DB blobs)
+  // File Preview State
   const [viewingFile, setViewingFile] = useState<File | Blob | null>(null);
   const [viewingFileName, setViewingFileName] = useState<string>("");
 
+  // AI Pipeline Hook
   const { analyze } = useCognify();
 
-
+  // Handle Theme
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
   }, [isDark]);
 
+  /**
+   * Main AI Pipeline Trigger
+   */
   const handleSendMessage = async ({
-      type,
-      prompt,
-      files
-    }: {
-      type: string | null
-      prompt: string
-      files: File[]
-    }) => {
-
-      // 1️⃣ Store files offline
-      for (const file of files) {
-
-        let category = "Documents"
-
-        if (file.type.startsWith("image/")) {
-
-          category = file.type === "image/png"
-            ? "Screenshots"
-            : "Photos"
-
-        } 
-        else if (file.name.match(/\.(ts|js|py|java|cpp|rs|go|html|css|json)$/)) {
-
-          category = "Code"
-
-        }
-
-        await saveFileOffline(file, category)
-
+    type,
+    prompt,
+    files
+  }: {
+    type: string | null;
+    prompt: string;
+    files: File[];
+  }) => {
+    // 1️⃣ Store files offline in IndexedDB
+    for (const file of files) {
+      let category = "Documents";
+      if (file.type.startsWith("image/")) {
+        category = file.type === "image/png" ? "Screenshots" : "Photos";
+      } else if (file.name.match(/\.(ts|js|py|java|cpp|rs|go|html|css|json)$/)) {
+        category = "Code";
       }
-
-      // 2️⃣ Update chat UI
-
-      const userMsg: Message = {
-        id: Date.now().toString(),
-        role: "user",
-        content: prompt || (files.length > 0 ? `Sent ${files.length} file(s)` : ""),
-        attachments: files
-      }
-
-      setMessages(prev => [...prev, userMsg])
-      setView("chat")
-
-      // 3️⃣ Simulate AI response
-
-      setIsTyping(true)
-
-      try {
-        const result = await analyze({
-          type,
-          prompt,
-          files
-        }) as AIResponse
-
-        const aiMsg: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: result.success
-            ? result.result ?? "No response generated."
-            : result.error ?? "AI failed."
-        }
-        setMessages(prev => [...prev, aiMsg])
-
-      } catch (err) {
-
-        const aiMsg: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: "AI analysis failed."
-        }
-
-        setMessages(prev => [...prev, aiMsg])
-
-      }
-      setIsTyping(false)
+      await saveFileOffline(file, category);
     }
+
+    // 2️⃣ Update UI with the User's Message
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: prompt || (files.length > 0 ? `Sent ${files.length} file(s)` : ""),
+      attachments: files
+    };
+
+    setMessages(prev => [...prev, userMsg]);
+    setView("chat"); // Switch from prompt screen to chat screen
+
+    // 3️⃣ Call AI Worker Pipeline
+    setIsTyping(true);
+
+    try {
+      // We pass the payload to the worker via useCognify
+      const response = await analyze({
+        type: type || "chat", // Default to chat if no specific type
+        prompt,
+        files
+      }) as AIResponse;
+
+      // 4️⃣ Update UI with the AI's Response
+      const aiMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: response.success 
+          ? (response.result ?? "Analysis complete.") 
+          : (response.error ?? "The AI encountered an error during processing.")
+      };
+
+      setMessages(prev => [...prev, aiMsg]);
+    } catch (err) {
+      console.error("AI Pipeline Error:", err);
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Critical error: The AI worker failed to respond. Please ensure models are loaded."
+      }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
 
   const activeFolder = typeof view === "object" ? view.folder : null;
 
-  // Helper to open the previewer from both chat and history folders
   const openPreview = (file: File | Blob, name: string) => {
     setViewingFile(file);
     setViewingFileName(name);
@@ -125,10 +117,11 @@ const Index = () => {
 
   return (
     <div className="h-screen w-full bg-background flex overflow-hidden text-foreground">
-
+      
+      {/* Background Model Loader Status */}
       <ModelManager />
       
-      {/* GLOBAL VIEWER OVERLAY - Supports Images, PDFs, and Code previews */}
+      {/* GLOBAL FILE VIEWER OVERLAY */}
       {viewingFile && (
         <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex items-center justify-center p-4 md:p-10 animate-in fade-in duration-300">
           <div className="bg-card border border-border w-full max-w-5xl h-full rounded-[32px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
@@ -165,8 +158,8 @@ const Index = () => {
               ) : (
                 <div className="w-full h-full bg-muted/20 rounded-xl p-8 border border-border flex flex-col items-center justify-center text-center">
                   <FileText size={64} className="mb-4 opacity-20" />
-                  <p className="text-sm font-medium">Text/Code Preview</p>
-                  <p className="text-xs text-muted-foreground mt-1 max-w-xs">Full analysis of "{viewingFileName}" is available within the AI chat session.</p>
+                  <p className="text-sm font-medium">Previewing: {viewingFileName}</p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-xs">AI analysis for this file type is displayed in the chat window.</p>
                 </div>
               )}
             </div>
@@ -174,6 +167,7 @@ const Index = () => {
         </div>
       )}
 
+      {/* SIDEBAR */}
       <AppSidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(false)}
@@ -188,6 +182,7 @@ const Index = () => {
         activeFolder={activeFolder}
       />
 
+      {/* MAIN CONTENT AREA */}
       <main
           className={`flex-1 flex flex-col min-w-0 transition-all duration-300 relative ${
             sidebarOpen ? "ml-64" : "ml-0"
@@ -202,6 +197,8 @@ const Index = () => {
         )}
 
         <div className="flex-1 flex flex-col h-full overflow-hidden">
+          
+          {/* 1. INITIAL PROMPT SCREEN */}
           {view === "prompt" && (
             <div className="flex-1 flex items-center justify-center p-4">
                <PromptUI 
@@ -213,6 +210,7 @@ const Index = () => {
             </div>
           )}
 
+          {/* 2. ACTIVE CHAT VIEW */}
           {view === "chat" && (
             <div className="flex-1 flex flex-col h-full">
               <ChatView 
@@ -230,12 +228,13 @@ const Index = () => {
             </div>
           )}
 
+          {/* 3. FOLDER / HISTORY VIEW */}
           {typeof view === "object" && (
             <div className="flex-1 h-full">
               <ContentHistoryView 
                 folder={view.folder} 
                 onNavigate={(f) => setView({ folder: f })} 
-                onPreviewFile={(item) => openPreview(item.blob, item.name)} // Link list items to the global previewer
+                onPreviewFile={(item) => openPreview(item.blob, item.name)}
               />
             </div>
           )}

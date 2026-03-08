@@ -1,89 +1,62 @@
-import * as webllm from "@mlc-ai/web-llm"
+import * as webllm from "@mlc-ai/web-llm";
 
-let engine: webllm.MLCEngine | null = null
-let loadingPromise: Promise<webllm.MLCEngine> | null = null
+let engine: webllm.MLCEngine | null = null;
+let loadingPromise: Promise<webllm.MLCEngine> | null = null;
+
+const MODEL_ID = "TinyLlama-1.1B-Chat-v1.0-q4f16_1-MLC";
 
 export async function loadLLM(onProgress?: (report: any) => void): Promise<webllm.MLCEngine> {
-
-  if (engine) return engine
-  if (loadingPromise) return loadingPromise
+  // If engine exists but crashed, reset it
+  if (engine) return engine;
+  if (loadingPromise) return loadingPromise;
 
   loadingPromise = (async () => {
-
     try {
-
-      console.log("[LLM] Starting to load model...")
-
       const initProgressCallback = (report: any) => {
-        console.log("[LLM] Loading progress:", report)
-        onProgress?.(report)
-      }
+        onProgress?.(report);
+      };
 
       engine = new webllm.MLCEngine({
+        appConfig: webllm.prebuiltAppConfig,
         initProgressCallback
-      })
+      });
 
-      const modelId = "TinyLlama-1.1B-Chat-v1.0-q4f16_1"
+      // NEW: Error listener to reset the engine if the GPU crashes again
+      // @ts-ignore - access internal device for health checks
+      if (engine.device) {
+        // @ts-ignore
+        engine.device.lost.then((info: any) => {
+          console.error("[LLM] WebGPU Device lost:", info.message);
+          engine = null;
+          loadingPromise = null;
+        });
+      }
 
-      console.log("[LLM] Loading model:", modelId)
-
-      await engine.reload(modelId)
-
-      console.log("[LLM] Model loaded successfully!")
-
-      return engine
-
+      await engine.reload(MODEL_ID);
+      return engine;
     } catch (error) {
-
-      console.error("[LLM] Failed to load model:", error)
-
-      engine = null
-      loadingPromise = null
-
-      throw error
-
+      engine = null;
+      loadingPromise = null;
+      throw error;
     }
+  })();
 
-  })()
-
-  return loadingPromise
+  return loadingPromise;
 }
 
 export async function runLLM(prompt: string): Promise<string> {
-
   try {
-
-    if (!prompt || typeof prompt !== "string") {
-      throw new Error("Invalid prompt: must be a non-empty string")
-    }
-
-    const llm = await loadLLM()
-
-    console.log("[LLM] Running inference...")
-
+    const llm = await loadLLM();
     const reply = await llm.chat.completions.create({
-
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ]
-
-    })
-
-    const response = reply?.choices?.[0]?.message?.content ?? "No response generated."
-
-    console.log("[LLM] Response:", response.substring(0, 100))
-
-    return response
-
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.0,
+      max_tokens: 512
+    });
+    return reply?.choices?.[0]?.message?.content ?? "No response.";
   } catch (error) {
-
-    console.error("[LLM] Error in runLLM:", error)
-
-    throw error
-
+    // If inference fails because of GPU, reset engine state
+    engine = null;
+    loadingPromise = null;
+    throw error;
   }
-
 }
