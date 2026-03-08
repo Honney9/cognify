@@ -1,37 +1,44 @@
 import { useState } from "react"
-import { runModel } from "@/services/ai/modelRegistry"
+import { analyzeContent } from "@/services/orchestrator"
 
 export function useScreenshotAnalysis() {
 
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function analyzeImage(file: File) {
 
     setLoading(true)
+    setError(null)
 
     try {
 
-      const bitmap = await createImageBitmap(file)
+      const res = await analyzeContent("screenshot", file)
 
-      const res = await runModel("photo", bitmap)
+      if (res.success) {
+        setResult(res)
+      } else {
+        setError(res.error ?? null)
+      }
 
-      setResult(res)
+    } catch {
 
-    } catch (err) {
-
-      console.error(err)
+      setError("Screenshot analysis failed")
 
     } finally {
 
       setLoading(false)
 
     }
+
   }
 
   return {
     analyzeImage,
     result,
-    loading
+    loading,
+    error
   }
+
 }

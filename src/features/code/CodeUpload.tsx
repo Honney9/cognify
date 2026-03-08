@@ -1,29 +1,37 @@
 import { useState } from "react"
+import FileUploader from "../../components/FileUploader"
 import { useCodeAnalysis } from "./useCodeAnalysis"
+import CodeResults from "./CodeResults"
 
 export default function CodeUpload() {
 
-  const [code, setCode] = useState("")
-  const { analyzeCode, loading } = useCodeAnalysis()
+  const { analyzeCode, result, loading } = useCodeAnalysis()
+  const [file, setFile] = useState<File | null>(null)
+
+  async function handleFile(file: File) {
+
+    setFile(file)
+
+    const text = await file.text()
+
+    analyzeCode(text)
+  }
 
   return (
 
-    <div className="space-y-4">
+    <div>
 
-      <textarea
-        className="w-full h-60 border p-3 rounded"
-        placeholder="Paste your code here..."
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
+      <FileUploader
+        onFileSelect={handleFile}
+        accept=".js,.ts,.py,.java,.cpp,.txt"
       />
 
-      <button
-        className="px-4 py-2 bg-blue-500 text-white rounded"
-        onClick={() => analyzeCode(code)}
-      >
-        {loading ? "Analyzing..." : "Analyze Code"}
-      </button>
+      {loading && <p>Analyzing code...</p>}
+
+      {result && <CodeResults result={result} />}
 
     </div>
+
   )
+
 }

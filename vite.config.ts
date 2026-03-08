@@ -106,6 +106,6 @@ export default defineConfig({
     // Exclude WASM-bearing packages from pre-bundling so their
     // import.meta.url resolves correctly to node_modules paths
     // (needed for automatic WASM file discovery at ../../wasm/).
-    exclude: ['@runanywhere/web-llamacpp', '@runanywhere/web-onnx'],
+    exclude: ['@runanywhere/web-llamacpp', '@runanywhere/web-onnx', "@mlc-ai/web-llm"],
   },
 });

@@ -1,37 +1,73 @@
 import { useState } from "react"
+import { ModelManager, ModelCategory } from "@runanywhere/web"
 
-export function useModelLoader() {
+export type LoaderState =
+  | "idle"
+  | "downloading"
+  | "loading"
+  | "ready"
+  | "error"
 
-  const [loading, setLoading] = useState(false)
-  const [ready, setReady] = useState(false)
+export function useModelLoader(category: ModelCategory) {
+
+  const [state, setState] = useState<LoaderState>("idle")
+  const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
-  async function loadModel(loader: () => Promise<any>) {
+  async function ensure() {
 
     try {
 
-      setLoading(true)
-      await loader()
+      const loaded = ModelManager.getLoadedModel(category)
 
-      setReady(true)
+      if (loaded) {
+        setState("ready")
+        return true
+      }
+
+      const models = ModelManager
+        .getModels()
+        .filter(m => m.modality === category)
+
+      if (models.length === 0) {
+        setError("No model registered")
+        setState("error")
+        return false
+      }
+
+      const model = models[0]
+
+      if (model.status !== "downloaded" && model.status !== "loaded") {
+
+        setState("downloading")
+
+        await ModelManager.downloadModel(model.id)
+
+        setProgress(1)
+      }
+
+      setState("loading")
+
+      const ok = await ModelManager.loadModel(model.id)
+
+      if (ok) {
+        setState("ready")
+        return true
+      }
+
+      setState("error")
+      return false
 
     } catch (err) {
 
       setError((err as Error).message)
-
-    } finally {
-
-      setLoading(false)
+      setState("error")
+      return false
 
     }
 
   }
 
-  return {
-    loading,
-    ready,
-    error,
-    loadModel
-  }
+  return { state, progress, error, ensure }
 
 }

@@ -1,30 +1,41 @@
 import { useState } from "react"
-import { runModel } from "@/services/ai/modelRegistry"
+import { analyzeContent } from "@/services/orchestrator"
 
 export function useCodeAnalysis() {
 
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function analyzeCode(code: string) {
 
     setLoading(true)
+    setError(null)
 
     try {
-      const res = await runModel("code", code)
+
+      const res = await analyzeContent("code", code)
+
       setResult(res)
-    } 
-    catch (err) {
+
+    } catch (err) {
+
       console.error(err)
-    } 
-    finally {
+      setError("Code analysis failed")
+
+    } finally {
+
       setLoading(false)
+
     }
+
   }
 
   return {
     analyzeCode,
     result,
-    loading
+    loading,
+    error
   }
+
 }

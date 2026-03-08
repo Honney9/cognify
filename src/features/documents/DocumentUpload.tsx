@@ -1,46 +1,32 @@
-import React, { useState } from "react"
-import { runModel } from "../../services/ai/modelRegistry"
+import { useDocumentAnalysis } from "./useDocumentAnalysis"
+import FileUploader from "../../components/FileUploader"
 
 export default function DocumentUpload() {
 
-  const [result, setResult] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
+  const { analyzeDocument, result } = useDocumentAnalysis()
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setLoading(true)
+  async function handleFile(file: File) {
 
     const text = await file.text()
 
-    const response = await runModel("document", text)
-
-    setResult(response)
-    setLoading(false)
+    analyzeDocument(text)
   }
 
   return (
+
     <div>
 
-      <h2>Upload Document</h2>
-
-      <input
-        type="file"
-        accept=".txt,.pdf,.doc,.docx"
-        onChange={handleUpload}
+      <FileUploader
+        onFileSelect={handleFile}
+        accept=".pdf,.txt,.doc,.docx,.csv"
       />
 
-      {loading && <p>Analyzing document...</p>}
-
       {result && (
-        <div>
-          <h3>Result</h3>
-          <pre>{JSON.stringify(result, null, 2)}</pre>
-        </div>
+        <pre>{JSON.stringify(result, null, 2)}</pre>
       )}
 
     </div>
+
   )
+
 }

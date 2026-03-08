@@ -1,26 +1,60 @@
 import { useState } from "react"
 
+type CognifyPayload = {
+  type: string | null
+  prompt: string
+  files: File[]
+}
+
 export function useCognify() {
 
   const [result, setResult] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  async function run(type: string, input: any) {
+  async function analyze(payload: CognifyPayload) {
 
-    const worker = new Worker(
-      new URL("../workers/ai.worker.ts", import.meta.url),
-      { type: "module" }
-    )
+    setLoading(true)
+    setError(null)
 
-    worker.postMessage({ type, input })
+    return new Promise((resolve, reject) => {
 
-    worker.onmessage = (e) => {
+      const worker = new Worker(
+        new URL("../workers/ai.worker.ts", import.meta.url),
+        { type: "module" }
+      )
 
-      setResult(e.data.result)
-      worker.terminate()
+      worker.postMessage(payload)
 
-    }
+      worker.onmessage = (e) => {
+
+        setResult(e.data)
+        setLoading(false)
+
+        resolve(e.data)
+
+        worker.terminate()
+      }
+
+      worker.onerror = (err) => {
+
+        setError("AI worker failed")
+        setLoading(false)
+
+        reject(err)
+
+        worker.terminate()
+      }
+
+    })
 
   }
 
-  return { run, result }
+  return {
+    analyze,
+    result,
+    loading,
+    error
+  }
+
 }

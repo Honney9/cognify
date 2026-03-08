@@ -6,8 +6,16 @@ import ChatView, { Message } from "@/components/ChatView";
 import ContentHistoryView from "@/components/ContentHistoryView";
 import ModelManager from "@/components/ModelManager";
 import { saveFileOffline } from "@/services/db"; // Import the offline storage service
+import { useCognify } from "@/hooks/useCognify"
+
 
 type View = "prompt" | "chat" | { folder: string };
+
+type AIResponse = {
+  success: boolean
+  result?: string
+  error?: string
+}
 
 const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -22,46 +30,90 @@ const Index = () => {
   const [viewingFile, setViewingFile] = useState<File | Blob | null>(null);
   const [viewingFileName, setViewingFileName] = useState<string>("");
 
+  const { analyze } = useCognify();
+
+
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
   }, [isDark]);
 
-  const handleSendMessage = async (content: string, files: File[]) => {
-    // 1. Store files in the offline database categorization logic
-    for (const file of files) {
-      let category = "Documents";
-      if (file.type.startsWith('image/')) {
-        // Distinguish Screenshots (PNG) vs Photos (JPG/others) if desired, or group all in Photos
-        category = file.type === 'image/png' ? "Screenshots" : "Photos";
-      } else if (file.name.match(/\.(ts|js|py|java|cpp|rs|go|html|css|json)$/)) {
-        category = "Code";
+  const handleSendMessage = async ({
+      type,
+      prompt,
+      files
+    }: {
+      type: string | null
+      prompt: string
+      files: File[]
+    }) => {
+
+      // 1️⃣ Store files offline
+      for (const file of files) {
+
+        let category = "Documents"
+
+        if (file.type.startsWith("image/")) {
+
+          category = file.type === "image/png"
+            ? "Screenshots"
+            : "Photos"
+
+        } 
+        else if (file.name.match(/\.(ts|js|py|java|cpp|rs|go|html|css|json)$/)) {
+
+          category = "Code"
+
+        }
+
+        await saveFileOffline(file, category)
+
       }
-      
-      await saveFileOffline(file, category);
+
+      // 2️⃣ Update chat UI
+
+      const userMsg: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content: prompt || (files.length > 0 ? `Sent ${files.length} file(s)` : ""),
+        attachments: files
+      }
+
+      setMessages(prev => [...prev, userMsg])
+      setView("chat")
+
+      // 3️⃣ Simulate AI response
+
+      setIsTyping(true)
+
+      try {
+        const result = await analyze({
+          type,
+          prompt,
+          files
+        }) as AIResponse
+
+        const aiMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: result.success
+            ? result.result ?? "No response generated."
+            : result.error ?? "AI failed."
+        }
+        setMessages(prev => [...prev, aiMsg])
+
+      } catch (err) {
+
+        const aiMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "AI analysis failed."
+        }
+
+        setMessages(prev => [...prev, aiMsg])
+
+      }
+      setIsTyping(false)
     }
-
-    // 2. Update Chat UI
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: content || (files.length > 0 ? `Sent ${files.length} file(s)` : ""),
-      attachments: files 
-    };
-    
-    setMessages(prev => [...prev, userMsg]);
-    setView("chat");
-
-    setIsTyping(true);
-    setTimeout(() => {
-      const aiMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "I've received your request. I'm currently analyzing the content and will provide a detailed response shortly."
-      };
-      setMessages(prev => [...prev, aiMsg]);
-      setIsTyping(false);
-    }, 1500);
-  };
 
   const activeFolder = typeof view === "object" ? view.folder : null;
 
@@ -136,7 +188,11 @@ const Index = () => {
         activeFolder={activeFolder}
       />
 
-      <main className={`flex-1 flex flex-col min-w-0 transition-all duration-300 relative ${sidebarOpen ? "ml-64" : "ml-0"}`}>
+      <main
+          className={`flex-1 flex flex-col min-w-0 transition-all duration-300 relative ${
+            sidebarOpen ? "ml-64" : "ml-0"
+          }`}
+        >
         {!sidebarOpen && (
           <div className="absolute top-5 left-6 z-50">
             <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-xl bg-card border border-border text-foreground hover:bg-accent transition-all">
