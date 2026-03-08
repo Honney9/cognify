@@ -1,124 +1,88 @@
-import { runModel, runModelStream } from "@/services/ai/modelRegistry"
+import * as webllm from "@mlc-ai/web-llm"
 
-self.onmessage = async (event: MessageEvent) => {
+let engine: webllm.MLCEngine | null = null
+let loadingPromise: Promise<webllm.MLCEngine> | null = null
 
-  const { type, prompt, files, stream } = event.data
+export async function loadLLM(onProgress?: (report: any) => void): Promise<webllm.MLCEngine> {
+
+  if (engine) return engine
+  if (loadingPromise) return loadingPromise
+
+  loadingPromise = (async () => {
+
+    try {
+
+      console.log("[LLM] Starting to load model...")
+
+      const initProgressCallback = (report: any) => {
+        console.log("[LLM] Loading progress:", report)
+        onProgress?.(report)
+      }
+
+      engine = new webllm.MLCEngine({
+        initProgressCallback
+      })
+
+      const modelId = "TinyLlama-1.1B-Chat-v1.0-q4f16_1"
+
+      console.log("[LLM] Loading model:", modelId)
+
+      await engine.reload(modelId)
+
+      console.log("[LLM] Model loaded successfully!")
+
+      return engine
+
+    } catch (error) {
+
+      console.error("[LLM] Failed to load model:", error)
+
+      engine = null
+      loadingPromise = null
+
+      throw error
+
+    }
+
+  })()
+
+  return loadingPromise
+}
+
+export async function runLLM(prompt: string): Promise<string> {
 
   try {
 
-    console.log("[AI Worker] Received request:", { 
-      type, 
-      prompt: prompt?.substring(0, 50), 
-      filesCount: files?.length,
-      files: files?.map((f: any) => ({ name: f.name, type: f.type })),
-      stream 
-    })
-
-    const normalizedType = type?.toLowerCase() || "chat"
-
-    let input: any = prompt
-
-    // If a file is attached, convert it properly
-    if (files && files.length > 0 && files[0]) {
-
-      const file = files[0]
-
-      console.log("[AI Worker] Processing file:", { name: file.name, type: file.type, size: file.size })
-
-      if (file.type.startsWith("image/")) {
-
-        console.log("[AI Worker] Detected image file")
-        
-        // Prevent sending images to chat/code models
-        if (normalizedType === "chat" || normalizedType === "code") {
-          throw new Error(
-            "⚠️ This text model doesn't support image inputs. " +
-            "Please select 'Photo' or 'Screenshot' type to analyze images with the vision model."
-          )
-        }
-        
-        console.log("[AI Worker] Processing as bitmap for vision model")
-        const bitmap = await createImageBitmap(file)
-        input = bitmap
-
-      } else {
-
-        console.log("[AI Worker] Detected text file, reading content")
-        const fileContent = await file.text()
-        
-        // For code files, combine the prompt with the file content
-        if (normalizedType === "code") {
-          input = prompt ? `${prompt}\n\nFile content:\n${fileContent}` : fileContent
-        } else {
-          input = fileContent
-        }
-
-      }
-
-    } else {
-      console.log("[AI Worker] No files attached, using prompt directly:", input?.substring(0, 100))
+    if (!prompt || typeof prompt !== "string") {
+      throw new Error("Invalid prompt: must be a non-empty string")
     }
 
-    // If streaming is requested and it's a chat/code type (and no image files), use streaming
-    const hasImageFile = files && files.length > 0 && files[0] && files[0].type.startsWith("image/")
-    
-    console.log("[AI Worker] Streaming decision:", { 
-      stream, 
-      normalizedType, 
-      hasImageFile,
-      willStream: stream && (normalizedType === "chat" || normalizedType === "code") && !hasImageFile
+    const llm = await loadLLM()
+
+    console.log("[LLM] Running inference...")
+
+    const reply = await llm.chat.completions.create({
+
+      messages: [
+        {
+          role: "user",
+          content: prompt
+        }
+      ]
+
     })
 
-    if (stream && (normalizedType === "chat" || normalizedType === "code") && !hasImageFile) {
-      console.log("[AI Worker] Starting streaming response...")
-      
-      for await (const chunk of runModelStream(normalizedType, input)) {
-        self.postMessage({
-          success: true,
-          chunk,
-          streaming: true
-        })
-      }
-      
-      console.log("[AI Worker] Streaming complete")
-      
-      // Send final message to indicate streaming is complete
-      self.postMessage({
-        success: true,
-        streaming: false,
-        complete: true
-      })
-    } else {
-      console.log("[AI Worker] Using non-streaming response...")
-      
-      // Non-streaming response (for images and other models)
-      const result = await runModel(normalizedType, input)
+    const response = reply?.choices?.[0]?.message?.content ?? "No response generated."
 
-      self.postMessage({
-        success: true,
-        result
-      })
-    }
+    console.log("[LLM] Response:", response.substring(0, 100))
+
+    return response
 
   } catch (error) {
 
-    console.error("[AI Worker] Error:", error)
+    console.error("[LLM] Error in runLLM:", error)
 
-    const errorMessage = (error as Error).message
-    
-    // Transform technical image errors into user-friendly messages
-    let userFriendlyError = errorMessage
-    
-    if (errorMessage.includes('image') && errorMessage.includes('does not support')) {
-      userFriendlyError = "⚠️ This text model doesn't support image inputs. Please use the vision model for analyzing images, photos, or screenshots."
-    } else if (errorMessage.includes('Cannot read') && errorMessage.includes('image')) {
-      userFriendlyError = "⚠️ Unable to process image with this model. For image analysis, please ensure you're using the vision model (Photos or Screenshots)."
-    }
-
-    self.postMessage({
-      success: false,
-      error: userFriendlyError
-    })
+    throw error
 
   }
 
