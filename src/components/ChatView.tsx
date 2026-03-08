@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { FileText, User, Code, AlertTriangle, Search, Image as ImageIcon } from "lucide-react";
+import { FileText, User, Code, AlertTriangle, Search, Image as ImageIcon, CheckCircle, XCircle, FileCheck } from "lucide-react";
 
 export interface Message {
   id: string;
@@ -138,6 +138,208 @@ export default function ChatView({ messages, isTyping, onAttachmentClick }: Chat
                         <li key={i} className="flex items-center gap-1.5">
                           <span className="h-1 w-1 rounded-full bg-primary shrink-0" />
                           {typeof ins === 'object' ? JSON.stringify(ins) : String(ins)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      }
+      
+      // 5. Handle Document Detection format
+      if (data.type === "document_detection") {
+        return (
+          <div className="space-y-4 min-w-[280px]">
+            <div className="flex items-center gap-2 font-bold text-base">
+              <FileText size={18} className="text-primary" /> 📄 Document Detected
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs opacity-60 uppercase tracking-wider">Type:</span>
+                <span className="font-semibold">{data.documentType}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs opacity-60 uppercase tracking-wider">Confidence:</span>
+                <span className="font-semibold">{(data.confidence * 100).toFixed(0)}%</span>
+              </div>
+            </div>
+            {data.summary && (
+              <p className="text-sm opacity-80 border-t border-foreground/10 pt-3 leading-relaxed">
+                {String(data.summary)}
+              </p>
+            )}
+          </div>
+        );
+      }
+
+      // 6. Handle Document Validation format
+      if (data.type === "document_validation") {
+        return (
+          <div className="space-y-4 min-w-[280px]">
+            <div className="flex items-center gap-2 font-bold text-base">
+              {data.valid ? (
+                <>
+                  <CheckCircle size={18} className="text-green-500" /> ✅ Document Validation
+                </>
+              ) : (
+                <>
+                  <XCircle size={18} className="text-destructive" /> ⚠️ Document Validation
+                </>
+              )}
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs opacity-60 uppercase tracking-wider">Status:</span>
+                <span className={`font-semibold ${data.valid ? 'text-green-500' : 'text-destructive'}`}>
+                  {data.valid ? "Valid Document" : "Invalid or Suspicious"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs opacity-60 uppercase tracking-wider">Confidence:</span>
+                <span className="font-semibold">{(data.confidence * 100).toFixed(0)}%</span>
+              </div>
+            </div>
+            {data.issues && data.issues.length > 0 ? (
+              <div className="border-t border-foreground/10 pt-3">
+                <p className="text-xs font-semibold mb-2 opacity-80">Issues Found:</p>
+                <ul className="space-y-1.5 text-sm">
+                  {data.issues.map((issue: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-destructive mt-0.5">•</span>
+                      <span className="opacity-80">{issue}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-sm opacity-70 border-t border-foreground/10 pt-3">
+                No structural issues were detected in the document.
+              </p>
+            )}
+          </div>
+        );
+      }
+
+      // 7. Handle Document Analysis format
+      if (data.type === "document_analysis") {
+        return (
+          <div className="space-y-4 max-w-full">
+            <div className="flex items-center gap-2 font-bold text-base text-primary">
+              <FileCheck size={18} /> 📊 Document Analysis
+            </div>
+            {data.summary && (
+              <div>
+                <p className="text-xs font-semibold mb-2 opacity-60 uppercase tracking-wider">Summary:</p>
+                <p className="text-sm leading-relaxed opacity-90">{String(data.summary)}</p>
+              </div>
+            )}
+            {data.keyPoints && Array.isArray(data.keyPoints) && data.keyPoints.length > 0 && (
+              <div className="border-t border-foreground/10 pt-3">
+                <p className="text-xs font-semibold mb-2 opacity-60 uppercase tracking-wider">Key Points:</p>
+                <ul className="space-y-2 text-sm">
+                  {data.keyPoints.map((point: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span className="opacity-80">{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // 8. Handle Combined Document Processing Result (all three)
+      if (data.detection || data.validation || data.analysis) {
+        return (
+          <div className="space-y-6 max-w-full">
+            {data.detection && (
+              <div className="space-y-3 pb-4 border-b border-foreground/10">
+                <div className="flex items-center gap-2 font-bold text-base">
+                  <FileText size={18} className="text-primary" /> 📄 Document Detected
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs opacity-60 uppercase tracking-wider">Type:</span>
+                    <span className="font-semibold">{data.detection.documentType}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs opacity-60 uppercase tracking-wider">Confidence:</span>
+                    <span className="font-semibold">{(data.detection.confidence * 100).toFixed(0)}%</span>
+                  </div>
+                </div>
+                {data.detection.summary && (
+                  <p className="text-sm opacity-80 leading-relaxed">{String(data.detection.summary)}</p>
+                )}
+              </div>
+            )}
+
+            {data.validation && (
+              <div className="space-y-3 pb-4 border-b border-foreground/10">
+                <div className="flex items-center gap-2 font-bold text-base">
+                  {data.validation.valid ? (
+                    <>
+                      <CheckCircle size={18} className="text-green-500" /> ✅ Document Validation
+                    </>
+                  ) : (
+                    <>
+                      <XCircle size={18} className="text-destructive" /> ⚠️ Document Validation
+                    </>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs opacity-60 uppercase tracking-wider">Status:</span>
+                    <span className={`font-semibold ${data.validation.valid ? 'text-green-500' : 'text-destructive'}`}>
+                      {data.validation.valid ? "Valid Document" : "Invalid or Suspicious"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs opacity-60 uppercase tracking-wider">Confidence:</span>
+                    <span className="font-semibold">{(data.validation.confidence * 100).toFixed(0)}%</span>
+                  </div>
+                </div>
+                {data.validation.issues && data.validation.issues.length > 0 ? (
+                  <div>
+                    <p className="text-xs font-semibold mb-2 opacity-80">Issues Found:</p>
+                    <ul className="space-y-1.5 text-sm">
+                      {data.validation.issues.map((issue: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-destructive mt-0.5">•</span>
+                          <span className="opacity-80">{issue}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="text-sm opacity-70">No structural issues were detected in the document.</p>
+                )}
+              </div>
+            )}
+
+            {data.analysis && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 font-bold text-base text-primary">
+                  <FileCheck size={18} /> 📊 Document Analysis
+                </div>
+                {data.analysis.summary && (
+                  <div>
+                    <p className="text-xs font-semibold mb-2 opacity-60 uppercase tracking-wider">Summary:</p>
+                    <p className="text-sm leading-relaxed opacity-90">{String(data.analysis.summary)}</p>
+                  </div>
+                )}
+                {data.analysis.keyPoints && Array.isArray(data.analysis.keyPoints) && data.analysis.keyPoints.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold mb-2 opacity-60 uppercase tracking-wider">Key Points:</p>
+                    <ul className="space-y-2 text-sm">
+                      {data.analysis.keyPoints.map((point: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-primary mt-0.5">•</span>
+                          <span className="opacity-80">{point}</span>
                         </li>
                       ))}
                     </ul>

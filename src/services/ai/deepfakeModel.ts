@@ -13,7 +13,7 @@ let session: ort.InferenceSession | null = null;
 async function loadModel() {
   if (!session) {
     // FIX: Using the exact spelling from your folder structure
-    const modelPath = "/models/effecientnet.onnx";
+    const modelPath = "/models/efficientnet.onnx";
     console.log(`[DeepfakeModel] Loading model from: ${modelPath}`);
 
     session = await ort.InferenceSession.create(modelPath, {

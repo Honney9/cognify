@@ -13,12 +13,22 @@ self.onmessage = async (e: MessageEvent) => {
     // The Orchestrator calls runLLM inside llmModel.ts
     const result = await analyzeContent(type, { prompt, files });
     
-    self.postMessage({
-      success: result.success,
-      result: result.success ? (result.reasoning || "Analysis complete.") : null,
-      error: !result.success ? result.error : null,
-      modelOutput: result.modelOutput
-    });
+    // Handle document processing results
+    if (result.success && result.documentResult) {
+      self.postMessage({
+        success: true,
+        result: JSON.stringify(result.documentResult),
+        error: null,
+        modelOutput: result.documentResult
+      });
+    } else {
+      self.postMessage({
+        success: result.success,
+        result: result.success ? (result.reasoning || "Analysis complete.") : null,
+        error: !result.success ? result.error : null,
+        modelOutput: result.modelOutput
+      });
+    }
   } catch (error) {
     console.error("[LLM Worker Task Error]", error);
     self.postMessage({

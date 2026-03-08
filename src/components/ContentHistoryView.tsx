@@ -2,6 +2,7 @@ import { Code, FileText, Camera, Image, Lock, Search, ArrowLeft, ChevronRight, S
 import { useState, useEffect } from "react";
 import DocumentViewer from "../features/documents/DocumentViewer";
 import { getFilesByCategory } from "@/services/db"; // Import DB helper
+import SecureVaultAccess from "@/components/SecureVaultAccess";
 
 const iconMap: Record<string, React.ElementType> = {
   Code,
@@ -14,19 +15,14 @@ const iconMap: Record<string, React.ElementType> = {
 interface ContentHistoryViewProps {
   folder: string;
   onNavigate: (folder: string) => void;
+  onPreviewFile: (item: any) => void;
 }
 
-export default function ContentHistoryView({ folder, onNavigate }: ContentHistoryViewProps) {
+export default function ContentHistoryView({ folder, onNavigate, onPreviewFile }: ContentHistoryViewProps) {
   const [search, setSearch] = useState("");
   const [isUnlocked, setIsUnlocked] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [pin, setPin] = useState("");
-  const [showPin, setShowPin] = useState(false);
-  const [countryCode, setCountryCode] = useState("+1");
-  const [timer, setTimer] = useState(0);
-  const [otpSent, setOtpSent] = useState(false);
-  const [showToastBox, setShowToastBox] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  
 
   // --- NEW: DYNAMIC DATA STATE ---
   const [dbData, setDbData] = useState<Record<string, any[]>>({
@@ -46,7 +42,9 @@ export default function ContentHistoryView({ folder, onNavigate }: ContentHistor
     };
 
     loadAllData();
-    setIsUnlocked(false);
+    if (folder !== "Secure Vault") {
+      setIsUnlocked(false);
+    }
     setSelectedItem(null); 
   }, [folder]);
 
@@ -62,7 +60,7 @@ export default function ContentHistoryView({ folder, onNavigate }: ContentHistor
     const Icon = iconMap[folderName] || FileText;
     return (
       <div 
-        onClick={() => setSelectedItem(getItemWithUrl(item))} 
+        onClick={() => onPreviewFile(item)} 
         className="group flex items-start gap-4 p-4 rounded-[20px] bg-card-bg border border-transparent hover:border-card-border hover:bg-card-hover transition-all cursor-pointer"
       >
         <div className="h-10 w-10 shrink-0 rounded-xl bg-icon-bg flex items-center justify-center">
@@ -105,6 +103,10 @@ export default function ContentHistoryView({ folder, onNavigate }: ContentHistor
 
   const isDashboard = folder === "All" || !folder;
   const isVault = folder === "Secure Vault";
+
+  if (isVault && !isUnlocked) {
+    return <SecureVaultAccess onUnlock={() => setIsUnlocked(true)} />;
+  }
 
   return (
     <div className="flex flex-col h-full bg-main-bg text-foreground transition-colors duration-200">

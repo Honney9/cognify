@@ -3,6 +3,7 @@ import { runMobileNet } from "./ai/mobilenetModel";
 import { runDeepfakeModel } from "./ai/deepfakeModel";
 import { runVisionModel } from "./ai/visionModel";
 import { AIInputType } from "./ai/modelRegistry";
+import { processDocument, isDocumentProcessingRequest } from "./document/processor";
 
 export async function analyzeContent(
   type: AIInputType,
@@ -11,11 +12,48 @@ export async function analyzeContent(
   try {
     let modelResult: any = null;
     let reasoning: string | null = null;
+    let currentType = type; // Use a local variable we can change if detection fails
     const file = input.files?.[0];
 
-    // Specialized logic for Photo analysis
-    if (type === "photo" && file) {
-      // Call models directly to avoid registry reference errors
+    // 1. Document processing logic (with automatic fallback to Photo mode)
+    if (currentType === "document" && file) {
+      try {
+        const documentResult = await processDocument(file, input.prompt);
+        
+        // If successful, return the document result immediately
+        return {
+          success: true,
+          documentResult,
+          reasoning: JSON.stringify(documentResult)
+        };
+      } catch (error: any) {
+        console.error("Document processing error:", error);
+        
+        const errorMsg = error.message || "";
+        
+        // CHECK: Is this a fake PDF (actually an image) or a scanned document?
+        const isActuallyImage = 
+          errorMsg.includes("IMAGE_FILE") || 
+          errorMsg.includes("image renamed to .pdf") || 
+          errorMsg.includes("scanned image");
+
+        if (isActuallyImage) {
+          console.warn("PDF contains image data. Redirecting to Vision models...");
+          currentType = "photo"; // Switch type and let execution continue to the photo block
+        } else {
+          // For true corruptions or unhandled errors, fall back to LLM explanation
+          const fallbackReasoning = await runLLM(
+            `I encountered an error reading this document: "${errorMsg}". 
+             The user wanted: "${input.prompt}". Please explain the issue politely.`
+          );
+          return { success: false, error: errorMsg, reasoning: fallbackReasoning };
+        }
+      }
+    }
+
+    // 2. Specialized logic for Photo analysis (or redirected documents)
+    if (currentType === "photo" && file) {
+      // Call models directly
       const [visionData, mobileData, deepfakeData] = await Promise.all([
         runVisionModel(file),
         runMobileNet(file),
@@ -27,8 +65,9 @@ export async function analyzeContent(
       // Short delay to manage GPU/WASM context switching
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Prepare a clean context string for the LLM
+      // Prepare visual context
       const context = JSON.stringify({
+        fileName: file.name,
         visionFeatures: visionData,
         classifierResult: mobileData?.label || "unknown",
         isDeepfake: deepfakeData?.isDeepfake || false
@@ -39,48 +78,41 @@ export async function analyzeContent(
 
       let prompt = "";
       if (isDeepfakeQuery) {
-        prompt = `Task: Deepfake Detection. 
-        Data: ${context}. 
-        Respond ONLY with JSON.
-        Format: {"type":"deepfake_detection","isDeepfake":boolean,"confidence":number,"analysis":string}`;
+        prompt = `Task: Deepfake Detection. Data: ${context}. Respond ONLY with JSON. Format: {"type":"deepfake_detection","isDeepfake":boolean,"confidence":number,"analysis":string}`;
       } else {
-        // FIX: Improved prompt for generalization and reducing bias
-        prompt = `Task: General Photo Analysis. 
+        prompt = `Task: Photo/Visual Analysis. 
         Visual Data: ${context}. 
         User Request: "${input.prompt}".
         
-        Rules for Analysis:
-        1. Identify the broad scene category (e.g., Nature, Urban, Presentation, Interior).
-        2. DO NOT default to 'Celebration' unless flowers/party items are explicitly the main focus.
-        3. If railroad tracks, trees, or sky are detected, categorize as 'Nature' or 'Transportation'.
-        4. If people are at a podium or in a meeting room, categorize as 'Presentation'.
-        5. Generalize based on visual cues for any unseen scene types.
-
-        Respond ONLY with valid JSON.
+        Rules:
+        1. If the file name looks like a document (e.g., marksheet.pdf), analyze the text/data described in visualFeatures.
+        2. Identify the scene (Nature, Urban, Document, Presentation, etc.).
+        3. Respond ONLY with valid JSON.
         Format: {
-          "type": "photo",
-          "summary": "Clear description of the scene",
-          "scene": "Broad Category",
-          "detectedObjects": ["list of items"],
-          "tags": ["relevant", "tags"],
+          "type": "photo_analysis",
+          "summary": "Detailed description of contents",
+          "scene": "Category",
+          "detectedObjects": ["list"],
           "confidence": 0.9
         }`;
       }
       
       const llmResponse = await runLLM(prompt);
       
-      // Robust JSON extraction
+      // JSON extraction
       if (llmResponse) {
         const start = llmResponse.indexOf('{');
         const end = llmResponse.lastIndexOf('}');
         if (start !== -1 && end !== -1) {
           reasoning = llmResponse.substring(start, end + 1);
+        } else {
+          reasoning = llmResponse;
         }
       }
     } 
     else {
-      // Fallback for general chat or unhandled types
-      reasoning = await runLLM(`Context: ${type}. User: ${input.prompt}`);
+      // General chat fallback
+      reasoning = await runLLM(`Context: ${currentType}. User: ${input.prompt}`);
     }
 
     return {

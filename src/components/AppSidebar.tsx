@@ -6,7 +6,6 @@ import {
   Camera,
   Image,
   Lock,
-  LogOut,
   PanelLeftClose,
   Moon,
   Sun,
@@ -141,14 +140,6 @@ export default function AppSidebar({
           </div>
         )}
       </nav>
-
-      {/* Footer / Logout */}
-      <div className="p-4 border-t border-white/5">
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-all font-medium">
-          <LogOut size={18} />
-          <span>Logout</span>
-        </button>
-      </div>
     </aside>
   );
 }

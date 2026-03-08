@@ -2,7 +2,7 @@ const MODELS = [
   "/models/mobilenet.onnx",
   "/models/efficientnet.onnx",
   "/models/clip.onnx",
-];
+]; 
 
 const CACHE = "cognify-models";
 

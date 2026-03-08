@@ -7,10 +7,10 @@ import ContentHistoryView from "@/components/ContentHistoryView";
 import ModelManager from "@/components/ModelManager";
 import { saveFileOffline } from "@/services/db"; 
 import { useCognify } from "@/hooks/useCognify";
+import * as mammoth from "mammoth"; // 1. Import Mammoth
 
 type View = "prompt" | "chat" | { folder: string };
 
-// This matches the data structure returned by the Worker
 type AIResponse = {
   success: boolean;
   result?: string;
@@ -32,18 +32,14 @@ const Index = () => {
   // File Preview State
   const [viewingFile, setViewingFile] = useState<File | Blob | null>(null);
   const [viewingFileName, setViewingFileName] = useState<string>("");
+  const [docxHtml, setDocxHtml] = useState<string>(""); // 2. State for Word HTML
 
-  // AI Pipeline Hook
   const { analyze } = useCognify();
 
-  // Handle Theme
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
   }, [isDark]);
 
-  /**
-   * Main AI Pipeline Trigger
-   */
   const handleSendMessage = async ({
     type,
     prompt,
@@ -53,7 +49,6 @@ const Index = () => {
     prompt: string;
     files: File[];
   }) => {
-    // 1️⃣ Store files offline in IndexedDB
     for (const file of files) {
       let category = "Documents";
       if (file.type.startsWith("image/")) {
@@ -64,7 +59,6 @@ const Index = () => {
       await saveFileOffline(file, category);
     }
 
-    // 2️⃣ Update UI with the User's Message
     const userMsg: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -73,20 +67,16 @@ const Index = () => {
     };
 
     setMessages(prev => [...prev, userMsg]);
-    setView("chat"); // Switch from prompt screen to chat screen
-
-    // 3️⃣ Call AI Worker Pipeline
+    setView("chat");
     setIsTyping(true);
 
     try {
-      // We pass the payload to the worker via useCognify
       const response = await analyze({
-        type: type || "chat", // Default to chat if no specific type
+        type: type || "chat",
         prompt,
         files
       }) as AIResponse;
 
-      // 4️⃣ Update UI with the AI's Response
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
@@ -101,7 +91,7 @@ const Index = () => {
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "Critical error: The AI worker failed to respond. Please ensure models are loaded."
+        content: "Critical error: The AI worker failed to respond."
       }]);
     } finally {
       setIsTyping(false);
@@ -110,18 +100,28 @@ const Index = () => {
 
   const activeFolder = typeof view === "object" ? view.folder : null;
 
-  const openPreview = (file: File | Blob, name: string) => {
+  // 3. Updated openPreview to handle .docx conversion
+  const openPreview = async (file: File | Blob, name: string) => {
     setViewingFile(file);
     setViewingFileName(name);
+    setDocxHtml(""); // Reset
+
+    if (name.toLowerCase().endsWith(".docx")) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.convertToHtml({ arrayBuffer });
+        setDocxHtml(result.value);
+      } catch (error) {
+        console.error("Docx preview error:", error);
+        setDocxHtml("<p class='text-destructive'>Error loading Word document preview.</p>");
+      }
+    }
   };
 
   return (
     <div className="h-screen w-full bg-background flex overflow-hidden text-foreground">
-      
-      {/* Background Model Loader Status */}
       <ModelManager />
       
-      {/* GLOBAL FILE VIEWER OVERLAY */}
       {viewingFile && (
         <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex items-center justify-center p-4 md:p-10 animate-in fade-in duration-300">
           <div className="bg-card border border-border w-full max-w-5xl h-full rounded-[32px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
@@ -140,26 +140,31 @@ const Index = () => {
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
-                  className="p-2 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors"
-                  title="Download"
+                  className="p-2 hover:bg-accent rounded-lg text-muted-foreground transition-colors"
                 >
                   <Download size={18} />
                 </button>
-                <button onClick={() => setViewingFile(null)} className="p-2 hover:bg-accent rounded-lg transition-colors">
+                <button onClick={() => { setViewingFile(null); setDocxHtml(""); }} className="p-2 hover:bg-accent rounded-lg transition-colors">
                   <X size={20} />
                 </button>
               </div>
             </div>
+            
             <div className="flex-1 overflow-auto p-6 flex justify-center bg-background/50">
               {viewingFile.type.startsWith('image/') ? (
                 <img src={URL.createObjectURL(viewingFile)} alt="preview" className="max-w-full h-auto object-contain rounded-lg shadow-sm" />
               ) : viewingFile.type === 'application/pdf' ? (
                 <iframe src={URL.createObjectURL(viewingFile)} className="w-full h-full rounded-lg border-none bg-white shadow-sm" title="PDF Preview" />
+              ) : docxHtml ? (
+                /* 4. Word Document Render Area */
+                <div className="w-full h-full bg-white text-black rounded-lg p-10 overflow-auto shadow-sm prose prose-sm max-w-none">
+                  <div dangerouslySetInnerHTML={{ __html: docxHtml }} />
+                </div>
               ) : (
                 <div className="w-full h-full bg-muted/20 rounded-xl p-8 border border-border flex flex-col items-center justify-center text-center">
                   <FileText size={64} className="mb-4 opacity-20" />
                   <p className="text-sm font-medium">Previewing: {viewingFileName}</p>
-                  <p className="text-xs text-muted-foreground mt-1 max-w-xs">AI analysis for this file type is displayed in the chat window.</p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-xs">Analysis is available in the chat window.</p>
                 </div>
               )}
             </div>
@@ -167,27 +172,17 @@ const Index = () => {
         </div>
       )}
 
-      {/* SIDEBAR */}
       <AppSidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(false)}
         isDark={isDark}
         onToggleDark={() => setIsDark(!isDark)}
-        onNewSession={() => {
-            setSessionKey(prev => prev + 1);
-            setMessages([]);
-            setView("prompt");
-        }}
+        onNewSession={() => { setSessionKey(prev => prev + 1); setMessages([]); setView("prompt"); }}
         onFolderClick={(f) => setView({ folder: f })}
         activeFolder={activeFolder}
       />
 
-      {/* MAIN CONTENT AREA */}
-      <main
-          className={`flex-1 flex flex-col min-w-0 transition-all duration-300 relative ${
-            sidebarOpen ? "ml-64" : "ml-0"
-          }`}
-        >
+      <main className={`flex-1 flex flex-col min-w-0 transition-all duration-300 relative ${sidebarOpen ? "ml-64" : "ml-0"}`}>
         {!sidebarOpen && (
           <div className="absolute top-5 left-6 z-50">
             <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-xl bg-card border border-border text-foreground hover:bg-accent transition-all">
@@ -197,8 +192,6 @@ const Index = () => {
         )}
 
         <div className="flex-1 flex flex-col h-full overflow-hidden">
-          
-          {/* 1. INITIAL PROMPT SCREEN */}
           {view === "prompt" && (
             <div className="flex-1 flex items-center justify-center p-4">
                <PromptUI 
@@ -210,7 +203,6 @@ const Index = () => {
             </div>
           )}
 
-          {/* 2. ACTIVE CHAT VIEW */}
           {view === "chat" && (
             <div className="flex-1 flex flex-col h-full">
               <ChatView 
@@ -228,7 +220,6 @@ const Index = () => {
             </div>
           )}
 
-          {/* 3. FOLDER / HISTORY VIEW */}
           {typeof view === "object" && (
             <div className="flex-1 h-full">
               <ContentHistoryView 
