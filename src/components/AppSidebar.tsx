@@ -3,7 +3,6 @@ import {
   Plus,
   Code,
   FileText,
-  Camera,
   Image,
   Lock,
   PanelLeftClose,
@@ -27,8 +26,7 @@ interface AppSidebarProps {
 const contentFolders = [
   { name: "Code", icon: Code },
   { name: "Documents", icon: FileText },
-  { name: "Screenshots", icon: Camera },
-  { name: "Photos", icon: Image },
+  { name: "Gallery", icon: Image }, // Merged Screenshots and Photos
   { name: "Secure Vault", icon: Lock },
 ];
 
@@ -43,7 +41,6 @@ export default function AppSidebar({
 }: AppSidebarProps) {
   const [contentsOpen, setContentsOpen] = useState(true);
 
-  // Helper to check if "My Contents" (the main dashboard) is active
   const isAllActive = activeFolder === "All" || activeFolder === null;
 
   return (
@@ -55,7 +52,6 @@ export default function AppSidebar({
         ${isOpen ? "w-64" : "w-0 overflow-hidden border-r-0"}
       `}
     >
-      {/* Header - Brand & Toggle */}
       <div className="flex items-center justify-between px-4 h-16 shrink-0">
         <div className="flex items-center gap-3">
           <button
@@ -77,7 +73,6 @@ export default function AppSidebar({
         </button>
       </div>
 
-      {/* Action: New Session */}
       <div className="px-4 mt-2 mb-6">
         <button
           onClick={onNewSession}
@@ -88,10 +83,7 @@ export default function AppSidebar({
         </button>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-        
-        {/* Main "My Contents" Item - Triggers Dashboard */}
         <div className="relative group">
           <button
             onClick={() => onFolderClick("All")}
@@ -104,10 +96,9 @@ export default function AppSidebar({
             <FolderOpen size={18} />
             <span className="flex-1 text-left">My Contents</span>
             
-            {/* Toggle Arrow for accordion */}
             <div 
               onClick={(e) => {
-                e.stopPropagation(); // Prevents clicking arrow from triggering "All" view
+                e.stopPropagation();
                 setContentsOpen(!contentsOpen);
               }}
               className="p-1 hover:bg-white/10 rounded-md transition-colors"
@@ -117,7 +108,6 @@ export default function AppSidebar({
           </button>
         </div>
 
-        {/* Sub-Folders (Indented) */}
         {contentsOpen && (
           <div className="mt-1 ml-4 space-y-1 border-l border-white/5 pl-2">
             {contentFolders.map((folder) => {

@@ -24,7 +24,6 @@ export const saveFileOffline = async (file: File, category: string) => {
     date,
     size: (file.size / 1024).toFixed(1) + ' KB',
     type: file.type,
-    // Store the file blob directly (IndexedDB supports Blobs)
     blob: file, 
     snippet: `Offline stored ${category.toLowerCase()} file.`
   };
@@ -36,4 +35,10 @@ export const getFilesByCategory = async (category: string) => {
   const db = await initDB();
   if (category === "All") return db.getAll(STORE_NAME);
   return db.getAllFromIndex(STORE_NAME, 'category', category);
+};
+
+// --- NEW: Added Delete Function ---
+export const deleteFileById = async (id: number) => {
+  const db = await initDB();
+  return db.delete(STORE_NAME, id);
 };

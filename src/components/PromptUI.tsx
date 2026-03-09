@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, ArrowRight, Code, FileText, Camera, Image, Paperclip, X } from "lucide-react";
+import { Plus, ArrowRight, Code, FileText, Image, Paperclip, X } from "lucide-react";
 
 const MAX_FILES = 5;
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
@@ -29,25 +29,16 @@ const attachOptions = [
     ]
   },
   { 
-    name: "Screenshot", 
-    type: "screenshot", 
-    icon: Camera, 
-    accept: "image/*,.png,.jpg,.jpeg,.webp,.heic", 
-    features: [
-      "Detect sensitive information (OTPs, bank details)",
-      "Analyze UI or workflow context",
-      "Flag privacy or security risks",
-    ]
-  },
-  { 
-    name: "Photo", 
-    type: "photo", 
+    name: "Gallery", 
+    type: "gallery", 
     icon: Image, 
     accept: "image/*,.png,.jpg,.jpeg,.webp,.heic", 
     features: [
-      "AI-generated (deepfake) image detection",
+      "Detect sensitive info (OTPs, bank details)",
+      "Analyze UI/workflow or scene understanding",
+      "AI-generated (deepfake) detection",
+      "Flag privacy or security risks",
       "Automatic content tagging",
-      "Scene understanding",
     ]
   },
 ];
@@ -72,6 +63,16 @@ export default function PromptUI({ onSend, showWelcome = true, onPreviewFile }: 
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null); // Ref for auto-resizing
+
+  // --- Auto-resize logic for textarea ---
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "inherit";
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = `${Math.min(scrollHeight, 200)}px`; // Max height of 200px
+    }
+  }, [inputValue]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -110,7 +111,6 @@ export default function PromptUI({ onSend, showWelcome = true, onPreviewFile }: 
       return [...prev, ...filtered].slice(0, MAX_FILES);
     });
 
-    // Reset value so same file can be selected again if removed
     e.target.value = "";
   };
 
@@ -167,9 +167,10 @@ export default function PromptUI({ onSend, showWelcome = true, onPreviewFile }: 
         </div>
       )}
 
-      <div className="relative flex items-center bg-[hsl(var(--prompt-bg))] border border-[hsl(var(--prompt-border))] rounded-2xl shadow-lg px-2 py-1.5">
+      {/* Main Input Container - Adjusted items-end for multiline layout */}
+      <div className="relative flex items-end bg-[hsl(var(--prompt-bg))] border border-[hsl(var(--prompt-border))] rounded-2xl shadow-lg px-2 py-2">
         {/* PLUS MENU */}
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative mb-0.5" ref={dropdownRef}>
           <button
             type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -209,7 +210,7 @@ export default function PromptUI({ onSend, showWelcome = true, onPreviewFile }: 
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className={`p-2.5 rounded-xl hover:bg-accent transition-colors ${
+          className={`p-2.5 rounded-xl hover:bg-accent transition-colors mb-0.5 ${
             attachedFiles.length > 0 ? "text-primary" : "text-muted-foreground"
           }`}
         >
@@ -217,7 +218,7 @@ export default function PromptUI({ onSend, showWelcome = true, onPreviewFile }: 
         </button>
 
         <input
-          key={selectedType || "all"} // Forced refresh on type change
+          key={selectedType || "all"}
           ref={fileInputRef}
           type="file"
           multiple
@@ -226,40 +227,53 @@ export default function PromptUI({ onSend, showWelcome = true, onPreviewFile }: 
           onChange={handleFileChange}
         />
 
-        {/* FILE CHIPS + INPUT */}
-        <div className="flex-1 flex items-center gap-2 min-w-0 px-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          {attachedFiles.map((file, idx) => (
-            <div
-              key={`${file.name}-${idx}`}
-              className="flex items-center gap-1.5 bg-accent text-accent-foreground px-2 py-1 rounded-lg text-[11px] font-medium shrink-0"
-            >
-              <span
-                className="truncate max-w-[100px] cursor-pointer hover:text-primary"
-                onClick={() => onPreviewFile?.(file)}
-              >
-                {file.name}
-              </span>
-              <button
-                type="button"
-                onClick={() => removeFile(idx)}
-                className="hover:text-destructive"
-              >
-                <X size={14} />
-              </button>
+        {/* UPDATED MULTI-LINE INPUT AREA */}
+        <div className="flex-1 flex flex-col gap-2 min-w-0 px-2 py-1 max-h-[300px]">
+          {/* File Chips */}
+          {attachedFiles.length > 0 && (
+            <div className="flex flex-wrap gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              {attachedFiles.map((file, idx) => (
+                <div
+                  key={`${file.name}-${idx}`}
+                  className="flex items-center gap-1.5 bg-accent text-accent-foreground px-2 py-1 rounded-lg text-[11px] font-medium shrink-0"
+                >
+                  <span
+                    className="truncate max-w-[100px] cursor-pointer hover:text-primary"
+                    onClick={() => onPreviewFile?.(file)}
+                  >
+                    {file.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(idx)}
+                    className="hover:text-destructive"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
 
-          <input
-            type="text"
+          {/* Expanded Textarea */}
+          <textarea
+            ref={textareaRef}
+            rows={1}
             value={inputValue}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
             onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
             placeholder={
               attachedFiles.length > 0
                 ? "Add instructions for the attached file..."
                 : "Type your prompt..."
             }
-            className="flex-1 bg-transparent outline-none text-sm text-foreground py-2 min-w-[120px]"
+            className="w-full bg-transparent outline-none text-sm text-foreground py-1.5 min-w-[120px] resize-none overflow-y-auto custom-scrollbar"
+            style={{ minHeight: '36px' }}
           />
         </div>
 
@@ -267,7 +281,7 @@ export default function PromptUI({ onSend, showWelcome = true, onPreviewFile }: 
         <button
           type="button"
           onClick={handleSend}
-          className="p-2.5 rounded-xl bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-all active:scale-95"
+          className="p-2.5 rounded-xl bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-all active:scale-95 mb-0.5"
           disabled={!inputValue.trim() && attachedFiles.length === 0}
         >
           <ArrowRight size={20} />

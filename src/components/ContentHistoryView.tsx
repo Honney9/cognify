@@ -1,14 +1,17 @@
-import { Code, FileText, Camera, Image, Lock, Search, ArrowLeft, ChevronRight, ShieldCheck, Eye, EyeOff, ChevronDown } from "lucide-react";
+import { 
+  Code, FileText, Image, Lock, Search, ArrowLeft, 
+  ChevronRight, Trash2 
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import DocumentViewer from "../features/documents/DocumentViewer";
-import { getFilesByCategory } from "@/services/db"; // Import DB helper
+import { getFilesByCategory, deleteFileById } from "@/services/db";
 import SecureVaultAccess from "@/components/SecureVaultAccess";
+import { toast } from "sonner";
 
 const iconMap: Record<string, React.ElementType> = {
   Code,
   Documents: FileText,
-  Screenshots: Camera,
-  Photos: Image,
+  Gallery: Image,
   "Secure Vault": Lock,
 };
 
@@ -23,34 +26,59 @@ export default function ContentHistoryView({ folder, onNavigate, onPreviewFile }
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   
-
-  // --- NEW: DYNAMIC DATA STATE ---
   const [dbData, setDbData] = useState<Record<string, any[]>>({
-    Code: [], Documents: [], Screenshots: [], Photos: [], "Secure Vault": []
+    Code: [], Documents: [], Gallery: [], "Secure Vault": []
   });
 
-  useEffect(() => {
-    const loadAllData = async () => {
-      const categories = ["Code", "Documents", "Screenshots", "Photos", "Secure Vault"];
-      const newData: any = {};
-      
-      for (const cat of categories) {
-        const files = await getFilesByCategory(cat);
-        newData[cat] = files.reverse(); // Newest first
-      }
-      setDbData(newData);
-    };
+  const loadAllData = async () => {
+    try {
+      // Fetch separate categories from DB
+      const [code, docs, screenshots, photos, vault] = await Promise.all([
+        getFilesByCategory("Code"),
+        getFilesByCategory("Documents"),
+        getFilesByCategory("Screenshots"),
+        getFilesByCategory("Photos"),
+        getFilesByCategory("Secure Vault")
+      ]);
 
-    loadAllData();
-    if (folder !== "Secure Vault") {
-      setIsUnlocked(false);
+      // Merge Screenshots & Photos into Gallery
+      const galleryItems = [...screenshots, ...photos].sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
+      setDbData({
+        Code: code.reverse(),
+        Documents: docs.reverse(),
+        Gallery: galleryItems,
+        "Secure Vault": vault.reverse()
+      });
+    } catch (error) {
+      console.error("Failed to load DB data:", error);
     }
+  };
+
+  useEffect(() => {
+    loadAllData();
+    if (folder !== "Secure Vault") setIsUnlocked(false);
     setSelectedItem(null); 
   }, [folder]);
 
-  // Handle URL creation for blobs when viewing images
+  const handleDelete = async (e: React.MouseEvent, id: any, name: string) => {
+    e.stopPropagation();
+    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
+      try {
+        await deleteFileById(id);
+        toast.success("File deleted");
+        loadAllData(); // Refresh UI
+      } catch (err) {
+        toast.error("Failed to delete file");
+      }
+    }
+  };
+
   const getItemWithUrl = (item: any) => {
-    if (item.blob && item.type.startsWith('image/') && !item.url) {
+    if (!item) return null;
+    if (item.blob && (item.type?.startsWith?.('image/') || item.category === "Gallery") && !item.url) {
       return { ...item, url: URL.createObjectURL(item.blob) };
     }
     return item;
@@ -61,7 +89,7 @@ export default function ContentHistoryView({ folder, onNavigate, onPreviewFile }
     return (
       <div 
         onClick={() => onPreviewFile(item)} 
-        className="group flex items-start gap-4 p-4 rounded-[20px] bg-card-bg border border-transparent hover:border-card-border hover:bg-card-hover transition-all cursor-pointer"
+        className="group flex items-start gap-4 p-4 rounded-[20px] bg-card-bg border border-transparent hover:border-card-border hover:bg-card-hover transition-all cursor-pointer relative"
       >
         <div className="h-10 w-10 shrink-0 rounded-xl bg-icon-bg flex items-center justify-center">
           <Icon size={18} className="text-foreground/70" />
@@ -71,7 +99,16 @@ export default function ContentHistoryView({ folder, onNavigate, onPreviewFile }
           <p className="text-xs text-muted-foreground line-clamp-2 opacity-70 italic">{item.snippet}</p>
           {item.size && <span className="inline-block mt-2 px-2 py-0.5 bg-foreground/5 text-[9px] font-bold rounded text-muted-foreground uppercase">{item.size}</span>}
         </div>
-        <div className="text-[11px] text-muted-foreground pt-1 whitespace-nowrap">{item.date}</div>
+        
+        <div className="flex flex-col items-end gap-2">
+            <div className="text-[11px] text-muted-foreground whitespace-nowrap">{item.date}</div>
+            <button 
+                onClick={(e) => handleDelete(e, item.id, item.name)}
+                className="p-2 rounded-lg text-muted-foreground/20 hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+            >
+                <Trash2 size={16} />
+            </button>
+        </div>
       </div>
     );
   };
@@ -84,7 +121,15 @@ export default function ContentHistoryView({ folder, onNavigate, onPreviewFile }
         className="relative group aspect-square rounded-[24px] overflow-hidden bg-card-bg border border-card-border hover:border-primary/50 transition-all cursor-pointer"
       >
         <img src={displayItem.url} alt={item.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <button 
+                onClick={(e) => handleDelete(e, item.id, item.name)}
+                className="p-3 rounded-full bg-red-500 text-white shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all"
+            >
+                <Trash2 size={20} />
+            </button>
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
           <p className="text-[10px] text-white truncate font-medium">{item.name}</p>
         </div>
       </div>
@@ -92,13 +137,23 @@ export default function ContentHistoryView({ folder, onNavigate, onPreviewFile }
   };
 
   const getFilteredItems = (items: any[]) => {
+    if (!items) return [];
     if (!search.trim()) return items;
     const term = search.toLowerCase();
     return items.filter(item => item.name.toLowerCase().includes(term));
   };
 
   if (selectedItem) {
-    return <DocumentViewer item={selectedItem} onBack={() => setSelectedItem(null)} />;
+    return (
+      <DocumentViewer 
+        item={selectedItem} 
+        onBack={() => setSelectedItem(null)} 
+        onDelete={() => {
+            loadAllData();
+            setSelectedItem(null);
+        }}
+      />
+    );
   }
 
   const isDashboard = folder === "All" || !folder;
@@ -110,7 +165,6 @@ export default function ContentHistoryView({ folder, onNavigate, onPreviewFile }
 
   return (
     <div className="flex flex-col h-full bg-main-bg text-foreground transition-colors duration-200">
-      {/* ... Existing Search and Header Code ... */}
       <div className="max-w-5xl w-full mx-auto px-6 pt-12 pb-6">
           <div className="flex items-center gap-4">
             {!isDashboard && <button onClick={() => onNavigate("All")} className="p-2 hover:bg-card-hover rounded-full transition-colors"><ArrowLeft size={20} /></button>}
@@ -129,7 +183,7 @@ export default function ContentHistoryView({ folder, onNavigate, onPreviewFile }
               {Object.keys(dbData).map((cat) => {
                 const filtered = getFilteredItems(dbData[cat]);
                 if (filtered.length === 0) return null;
-                const isMedia = cat === "Photos" || cat === "Screenshots";
+                const isMedia = cat === "Gallery";
                 return (
                   <section key={cat}>
                     <div className="flex items-center justify-between mb-4 px-2">
@@ -147,7 +201,7 @@ export default function ContentHistoryView({ folder, onNavigate, onPreviewFile }
             </div>
           ) : (
             <div className="mt-4">
-              {(folder === "Photos" || folder === "Screenshots") ? (
+              {folder === "Gallery" ? (
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">{getFilteredItems(dbData[folder] || []).map((item, i) => <MediaPreviewItem key={i} item={item} />)}</div>
               ) : (
                 <div className="space-y-2">{getFilteredItems(dbData[folder] || []).map((item, i) => <ListItem key={i} item={item} folderName={folder} />)}</div>
