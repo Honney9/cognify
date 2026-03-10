@@ -1,62 +1,43 @@
-import * as webllm from "@mlc-ai/web-llm";
+import * as ort from "onnxruntime-web"
 
-let engine: webllm.MLCEngine | null = null;
-let loadingPromise: Promise<webllm.MLCEngine> | null = null;
+let session: ort.InferenceSession | null = null
 
-const MODEL_ID = "TinyLlama-1.1B-Chat-v1.0-q4f16_1-MLC";
+async function loadModel() {
 
-export async function loadLLM(onProgress?: (report: any) => void): Promise<webllm.MLCEngine> {
-  // If engine exists but crashed, reset it
-  if (engine) return engine;
-  if (loadingPromise) return loadingPromise;
+  if (!session) {
 
-  loadingPromise = (async () => {
-    try {
-      const initProgressCallback = (report: any) => {
-        onProgress?.(report);
-      };
+    console.log("[LLM] Loading Phi-3 Mini...")
 
-      engine = new webllm.MLCEngine({
-        appConfig: webllm.prebuiltAppConfig,
-        initProgressCallback
-      });
-
-      // NEW: Error listener to reset the engine if the GPU crashes again
-      // @ts-ignore - access internal device for health checks
-      if (engine.device) {
-        // @ts-ignore
-        engine.device.lost.then((info: any) => {
-          console.error("[LLM] WebGPU Device lost:", info.message);
-          engine = null;
-          loadingPromise = null;
-        });
+    session = await ort.InferenceSession.create(
+      "/models/phi3/model.onnx",
+      {
+        executionProviders: ["wasm"]
       }
+    )
 
-      await engine.reload(MODEL_ID);
-      return engine;
-    } catch (error) {
-      engine = null;
-      loadingPromise = null;
-      throw error;
-    }
-  })();
+    console.log("[LLM] Phi-3 Mini loaded")
+  }
 
-  return loadingPromise;
+  return session
 }
 
-export async function runLLM(prompt: string): Promise<string> {
-  try {
-    const llm = await loadLLM();
-    const reply = await llm.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.0,
-      max_tokens: 512
-    });
-    return reply?.choices?.[0]?.message?.content ?? "No response.";
-  } catch (error) {
-    // If inference fails because of GPU, reset engine state
-    engine = null;
-    loadingPromise = null;
-    throw error;
-  }
+export async function runLLM(prompt: string) {
+
+  const model = await loadModel()
+
+  const inputTensor = new ort.Tensor(
+    "string",
+    [prompt],
+    [1]
+  )
+
+  const feeds: Record<string, any> = {}
+
+  feeds[model.inputNames[0]] = inputTensor
+
+  const results = await model.run(feeds)
+
+  const output = results[model.outputNames[0]]
+
+  return output.data[0]
 }
