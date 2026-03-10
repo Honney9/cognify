@@ -3,7 +3,7 @@ export type PrivacyDetection = {
   confidence: number
 }
 
-export function detectSensitiveContent(tags: string[]): PrivacyDetection[] {
+export function detectSensitiveContent(text: string): PrivacyDetection[] {
 
   const sensitiveKeywords = [
     "credit card",
@@ -19,20 +19,16 @@ export function detectSensitiveContent(tags: string[]): PrivacyDetection[] {
 
   const results: PrivacyDetection[] = []
 
-  for (const tag of tags) {
+  const lowerText = text.toLowerCase()
 
-    const lower = tag.toLowerCase()
+  for (const keyword of sensitiveKeywords) {
 
-    for (const keyword of sensitiveKeywords) {
+    if (lowerText.includes(keyword)) {
 
-      if (lower.includes(keyword)) {
-
-        results.push({
-          type: keyword,
-          confidence: 0.9
-        })
-
-      }
+      results.push({
+        type: keyword,
+        confidence: 0.9
+      })
 
     }
 

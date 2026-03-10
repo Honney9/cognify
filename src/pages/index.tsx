@@ -41,61 +41,83 @@ const Index = () => {
   }, [isDark]);
 
   const handleSendMessage = async ({
-    type,
-    prompt,
-    files
-  }: {
-    type: string | null;
-    prompt: string;
-    files: File[];
-  }) => {
+  type,
+  prompt,
+  files
+}: {
+  type: string | null;
+  prompt: string;
+  files: File[];
+}) => {
+
+  const userMsg: Message = {
+    id: Date.now().toString(),
+    role: "user",
+    content: prompt || (files.length > 0 ? `Sent ${files.length} file(s)` : ""),
+    attachments: files
+  };
+
+  setMessages(prev => [...prev, userMsg]);
+  setView("chat");
+  setIsTyping(true);
+
+  try {
+
+    const response = await analyze({
+      type: type || "chat",
+      prompt,
+      files
+    }) as AIResponse;
+
+    /* ----------------------------- */
+    /* SAVE FILES AFTER AI ANALYSIS  */
+    /* ----------------------------- */
+
     for (const file of files) {
+
       let category = "Documents";
-      if (file.type.startsWith("image/")) {
+
+      if (response?.modelOutput?.sensitive === true) {
+        category = "Secure Vault";
+      }
+      else if (file.type.startsWith("image/")) {
         category = file.type === "image/png" ? "Screenshots" : "Photos";
-      } else if (file.name.match(/\.(ts|js|py|java|cpp|rs|go|html|css|json)$/)) {
+      }
+      else if (file.name.match(/\.(ts|js|py|java|cpp|rs|go|html|css|json)$/)) {
         category = "Code";
       }
+
       await saveFileOffline(file, category);
+
+      console.log("Saved:", file.name, "→", category);
     }
 
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: prompt || (files.length > 0 ? `Sent ${files.length} file(s)` : ""),
-      attachments: files
+    const aiMsg: Message = {
+      id: (Date.now() + 1).toString(),
+      role: "assistant",
+      content: response.success
+        ? (response.result ?? "Analysis complete.")
+        : (response.error ?? "The AI encountered an error during processing.")
     };
 
-    setMessages(prev => [...prev, userMsg]);
-    setView("chat");
-    setIsTyping(true);
+    setMessages(prev => [...prev, aiMsg]);
 
-    try {
-      const response = await analyze({
-        type: type || "chat",
-        prompt,
-        files
-      }) as AIResponse;
+  } catch (err) {
 
-      const aiMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: response.success 
-          ? (response.result ?? "Analysis complete.") 
-          : (response.error ?? "The AI encountered an error during processing.")
-      };
+    console.error("AI Pipeline Error:", err);
 
-      setMessages(prev => [...prev, aiMsg]);
-    } catch (err) {
-      console.error("AI Pipeline Error:", err);
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "Critical error: The AI worker failed to respond."
-      }]);
+    setMessages(prev => [...prev, {
+      id: (Date.now() + 1).toString(),
+      role: "assistant",
+      content: "Critical error: The AI worker failed to respond."
+    }]);
+
     } finally {
+
       setIsTyping(false);
+
     }
+
   };
 
   const activeFolder = typeof view === "object" ? view.folder : null;

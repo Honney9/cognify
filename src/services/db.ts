@@ -16,6 +16,10 @@ export const initDB = async () => {
 
 export const saveFileOffline = async (file: File, category: string) => {
   const db = await initDB();
+
+  console.log("Saving file:", file.name)
+  console.log("Category:", category)
+  
   const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   
   const entry = {

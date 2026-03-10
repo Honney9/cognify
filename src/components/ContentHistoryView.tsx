@@ -121,14 +121,14 @@ export default function ContentHistoryView({ folder, onNavigate, onPreviewFile }
         className="relative group aspect-square rounded-[24px] overflow-hidden bg-card-bg border border-card-border hover:border-primary/50 transition-all cursor-pointer"
       >
         <img src={displayItem.url} alt={item.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+        {/* <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <button 
                 onClick={(e) => handleDelete(e, item.id, item.name)}
                 className="p-3 rounded-full bg-red-500 text-white shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all"
             >
                 <Trash2 size={20} />
             </button>
-        </div>
+        </div> */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
           <p className="text-[10px] text-white truncate font-medium">{item.name}</p>
         </div>
@@ -143,14 +143,16 @@ export default function ContentHistoryView({ folder, onNavigate, onPreviewFile }
     return items.filter(item => item.name.toLowerCase().includes(term));
   };
 
+  
   if (selectedItem) {
     return (
       <DocumentViewer 
         item={selectedItem} 
         onBack={() => setSelectedItem(null)} 
-        onDelete={() => {
-            loadAllData();
-            setSelectedItem(null);
+        onDelete={async (item) => {
+          await deleteFileById(item.id)
+          await loadAllData()
+          setSelectedItem(null)
         }}
       />
     );
@@ -174,6 +176,7 @@ export default function ContentHistoryView({ folder, onNavigate, onPreviewFile }
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Search...`} className="w-full bg-card-bg border border-card-border rounded-full pl-12 pr-4 py-3 text-sm focus:ring-1 focus:ring-primary outline-none" />
           </div>
+          
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 pb-20">

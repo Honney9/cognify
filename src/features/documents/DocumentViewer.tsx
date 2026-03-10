@@ -5,7 +5,7 @@ import { toast } from "sonner";
 interface DocumentViewerProps {
   item: any;
   onBack: () => void;
-  onDelete?: (item: any) => void; // Added onDelete prop
+  onDelete?: (item: any) => void; 
 }
 
 export default function DocumentViewer({ item, onBack, onDelete }: DocumentViewerProps) {

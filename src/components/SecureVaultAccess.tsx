@@ -7,7 +7,7 @@ interface Props {
 export default function SecureVaultAccess({ onUnlock }: Props) {
 
     const checkBiometrics = async () => {
-
+        
     const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
 
         if (!available) {

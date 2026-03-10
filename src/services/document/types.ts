@@ -3,7 +3,7 @@
  * 
  * Type definitions for document detection, validation, and analysis features
  */
-
+import type { PrivacyDetection } from "../wasm/privacyRules";
 /**
  * Document Detection Response
  */
@@ -43,6 +43,10 @@ export interface DocumentProcessingResult {
   detection?: DocumentDetectionResponse;
   validation?: DocumentValidationResponse;
   analysis?: DocumentAnalysisResponse;
+
+  // 🔐 Secure Vault Privacy Detection
+  sensitive?: boolean;
+  sensitiveDetections?: PrivacyDetection[];
 }
 
 /**

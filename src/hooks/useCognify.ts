@@ -12,6 +12,27 @@ export function useCognify() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  function detectSensitive(text: string) {
+
+    const keywords = [
+      "passport",
+      "aadhaar",
+      "aadhar",
+      "pan card",
+      "bank account",
+      "credit card",
+      "debit card",
+      "ifsc",
+      "otp",
+      "cvv",
+      "identity document"
+    ]
+
+    const lower = text.toLowerCase()
+
+    return keywords.some(k => lower.includes(k))
+  }
+
   async function analyze(payload: CognifyPayload) {
 
     setLoading(true)
@@ -28,10 +49,24 @@ export function useCognify() {
 
       worker.onmessage = (e) => {
 
-        setResult(e.data)
+        const data = e.data
+
+        // 🔐 Detect sensitive content from AI result
+        const text = (data?.result ?? "").toString()
+
+        const sensitive = detectSensitive(text)
+
+        const enhancedResult = {
+          ...data,
+          sensitive
+        }
+
+        console.log("Sensitive flag:", sensitive)
+
+        setResult(enhancedResult)
         setLoading(false)
 
-        resolve(e.data)
+        resolve(enhancedResult)
 
         worker.terminate()
       }
