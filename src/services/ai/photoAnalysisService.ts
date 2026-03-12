@@ -35,13 +35,13 @@ export function detectIntent(prompt: string): PhotoAnalysisIntent {
   const lowerPrompt = prompt.toLowerCase();
   
   // Deepfake detection keywords
-  const deepfakeKeywords = ["ai generated", "deepfake", "fake", "synthetic", "ai-generated", "real or fake"];
+  const deepfakeKeywords = [ "deepfake",  "ai generated",  "ai-generated",  "synthetic",  "is this fake",  "real or fake"]
   if (deepfakeKeywords.some(keyword => lowerPrompt.includes(keyword))) {
     return "deepfake";
   }
   
   // Content tagging keywords
-  const taggingKeywords = ["tag", "label", "keywords", "categorize", "classify"];
+  const taggingKeywords = ["tag", "tagging","label", "labels", "keywords", "categorize", "classify", "identify objects"];
   if (taggingKeywords.some(keyword => lowerPrompt.includes(keyword))) {
     return "tagging";
   }
@@ -59,82 +59,105 @@ export function detectIntent(prompt: string): PhotoAnalysisIntent {
 /**
  * Generates an optimized prompt for the LLM based on intent
  */
+
+type VisionFeatures = {
+  objects?: string[]
+  colors?: string[]
+  environment?: string
+  embeddings?: string[]
+}
+
+type ModelContext = {
+  visionFeatures: VisionFeatures
+  classifierResult: string
+  isDeepfake: boolean
+}
 export function generatePrompt(
   intent: PhotoAnalysisIntent,
   userPrompt: string,
-  modelContext: { visionFeatures: any; classifierResult: string; isDeepfake: boolean }
+  modelContext: ModelContext
 ): string {
   const context = JSON.stringify(modelContext);
   
   switch (intent) {
     case "deepfake":
-      return `Task: Deepfake Detection Analysis
-Data: ${context}
-User Query: "${userPrompt}"
+      return `You are an AI deepfake detection assistant.
 
-Analyze if this image is AI-generated or manipulated. Consider:
-1. Artifacts from generation models
-2. Inconsistencies in lighting or perspective
-3. Visual anomalies that suggest synthetic content
-4. Classifier confidence patterns
+    Image model outputs:
+    ${context}
 
-Respond ONLY with valid JSON in this EXACT format:
-{
-  "type": "deepfake_detection",
-  "isDeepfake": true/false,
-  "confidence": 0.0-1.0,
-  "analysis": "Detailed explanation of why this is/isn't a deepfake"
-}`;
+    User request:
+    "${userPrompt}"
+
+    Determine whether the image is AI-generated or manipulated.
+
+    Return ONLY JSON:
+
+    {
+    "type":"deepfake_detection",
+    "isDeepfake": true or false,
+    "confidence": 0.0-1.0,
+    "analysis":"short explanation of why the image may be real or fake"
+    }
+
+    Rules:
+    - confidence must be between 0 and 1
+    - do not output anything outside JSON`;
 
     case "tagging":
-      return `Task: Content Tagging
-Data: ${context}
-User Query: "${userPrompt}"
+     return `You are an AI image tagging system.
 
-Generate comprehensive tags for this image. Include:
-1. Main subjects and objects (minimum 3)
-2. Colors, mood, and atmosphere
-3. Scene type and location hints
-4. Actions or activities present
-5. Style or aesthetic categories
+Vision model analysis:
+${context}
 
-Respond ONLY with valid JSON in this EXACT format:
+User request:
+"${userPrompt}"
+
+Analyze the image and generate descriptive tags.
+
+Return ONLY valid JSON in this EXACT structure:
+
 {
   "type": "photo",
-  "scene": "Primary scene category",
-  "summary": "Brief description of the image content",
-  "detectedObjects": ["object1", "object2", "object3", "..."],
-  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "..."],
-  "confidence": 0.0-1.0,
-  "insights": ["Why these tags were chosen", "Notable patterns or features"]
+  "scene": "short scene category",
+  "summary": "One natural sentence describing the image and its tags",
+  "detectedObjects": ["object1", "object2", "object3"],
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+  "confidence": 0.0
 }
 
-Ensure detectedObjects and tags each contain at least 3 items.`;
+Important rules:
+- tags must be simple strings (NOT objects)
+- detectedObjects must contain at least 3 items
+- tags must contain 5 descriptive words
+- confidence must be between 0 and 1
+- do not output anything outside JSON
+- do not create nested objects inside tags`;
 
     case "scene":
-      return `Task: Scene Understanding and Description
-Data: ${context}
-User Query: "${userPrompt}"
+      return `You are an AI scene understanding assistant.
 
-Provide a comprehensive analysis of the scene. Include:
-1. Overall scene category (Nature, Urban, Interior, Event, etc.)
-2. Main elements and their relationships
-3. Environmental context (lighting, time of day, weather)
-4. Actions or narrative elements
-5. Emotional tone or atmosphere
+      Image model outputs:
+      ${context}
 
-Respond ONLY with valid JSON in this EXACT format:
-{
-  "type": "photo",
-  "scene": "Broad scene category",
-  "summary": "Detailed description of what's happening in the scene",
-  "detectedObjects": ["key element 1", "key element 2", "key element 3", "..."],
-  "tags": ["contextual tag 1", "tag 2", "tag 3", "..."],
-  "confidence": 0.0-1.0,
-  "insights": ["Interpretation 1", "Observation 2", "Detail 3"]
-}
+      User request:
+      "${userPrompt}"
 
-Ensure detectedObjects has at least 3 items and insights provides meaningful context.`;
+      Describe what is happening in the image.
+
+      Return ONLY JSON:
+
+      {
+      "type":"photo",
+      "scene":"scene category",
+      "summary":"description of what is happening",
+      "detectedObjects":["object1","object2","object3"],
+      "tags":["tag1","tag2","tag3"],
+      "confidence":0.0-1.0,
+      "insights":["important observation"]
+      }
+
+      Do not output anything outside the JSON.`;
 
     case "general":
     default:
@@ -179,7 +202,7 @@ export function validatePhotoResponse(response: any): PhotoSceneResponse {
     success: true,
     type: "photo",
     scene: response.scene || "Unknown Scene",
-    summary: response.summary || response.text || response.description || "No description available",
+    summary: response.summary || response.text || response.description || response.caption || "No description available",
     detectedObjects: Array.isArray(response.detectedObjects) ? response.detectedObjects : [],
     tags: Array.isArray(response.tags) ? response.tags : [],
     confidence: typeof response.confidence === "number" ? response.confidence : 0.75,

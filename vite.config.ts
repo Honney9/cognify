@@ -104,7 +104,7 @@ export default defineConfig({
       'Cross-Origin-Embedder-Policy': 'credentialless',
     },
   },
-  assetsInclude: ['**/*.wasm'],
+  assetsInclude: ['**/*.wasm', '**/*.onnx', '**/*.data'],
   resolve: {
     alias: {
       "@": path.resolve(__dir, "src"), // Corrected from __dirname to __dir for ESM consistency
@@ -117,7 +117,8 @@ export default defineConfig({
       '@runanywhere/web-llamacpp', 
       '@runanywhere/web-onnx', 
       "@mlc-ai/web-llm", 
-      "onnxruntime-web" // Added this to prevent the MIME type/HTML response error
+      "onnxruntime-web",
+      "@xenova/transformers" // Added this to prevent the MIME type/HTML response error
     ],
   },
 });

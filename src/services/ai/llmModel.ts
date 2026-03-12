@@ -1,43 +1,57 @@
-import * as ort from "onnxruntime-web"
+import * as webllm from "@mlc-ai/web-llm";
 
-let session: ort.InferenceSession | null = null
+let engine: webllm.MLCEngine | null = null;
 
 async function loadModel() {
 
-  if (!session) {
+  if (!engine) {
 
-    console.log("[LLM] Loading Phi-3 Mini...")
 
-    session = await ort.InferenceSession.create(
-      "/models/phi3/model.onnx",
-      {
-        executionProviders: ["wasm"]
-      }
-    )
+    console.log("[LLM] Loading WebLLM...");
 
-    console.log("[LLM] Phi-3 Mini loaded")
+    const appConfig = webllm.prebuiltAppConfig;
+
+    engine = new webllm.MLCEngine({
+      appConfig,
+      logLevel: "INFO"
+    });
+
+    await engine.reload("Hermes-2-Pro-Llama-3-8B-q4f16_1-MLC");
+
+    console.log("[LLM] Model loaded");
   }
 
-  return session
+  return engine;
 }
 
-export async function runLLM(prompt: string) {
+export async function runLLM(prompt: string): Promise<string> {
 
-  const model = await loadModel()
+  try {
 
-  const inputTensor = new ort.Tensor(
-    "string",
-    [prompt],
-    [1]
-  )
+    const model = await loadModel();
 
-  const feeds: Record<string, any> = {}
+    const response = await model.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an AI assistant used inside a productivity app. You analyze computer vision outputs and respond strictly in JSON when requested."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 200
+      });
 
-  feeds[model.inputNames[0]] = inputTensor
+    return response.choices[0]?.message?.content || "No response";
 
-  const results = await model.run(feeds)
+  } catch (error) {
 
-  const output = results[model.outputNames[0]]
+    console.error("LLM error:", error);
 
-  return output.data[0]
+    return "LLM failed to generate response.";
+  }
 }

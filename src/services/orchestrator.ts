@@ -1,38 +1,39 @@
-import { runLLM } from "./ai/llmModel";
-import { runMobileNet } from "./ai/mobilenetModel";
-import { runDeepfakeModel } from "./ai/deepfakeModel";
-import { runVisionModel } from "./ai/visionModel";
-import { AIInputType } from "./ai/modelRegistry";
-import { processDocument } from "./document/processor";
+import { runLLM } from "./ai/llmModel"
+import { runMobileNet } from "./ai/mobilenetModel"
+import { runDeepfakeModel } from "./ai/deepfakeModel"
+import { runVisionModel } from "./ai/visionModel"
+import { AIInputType } from "./ai/modelRegistry"
+import { processDocument } from "./document/processor"
+import { 
+  detectIntent,
+  generatePrompt,
+  extractJSON,
+  validatePhotoResponse
+} from "./ai/photoAnalysisService";
 
-/**
- * Safely extract JSON from LLM output
- */
-function extractJSON(text: string | null): string | null {
-  if (!text) return null;
-
-  try {
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return text;
-
-    const parsed = JSON.parse(match[0]);
-    return JSON.stringify(parsed);
-  } catch {
-    return text;
-  }
-}
 
 export async function analyzeContent(
   type: AIInputType,
   input: { prompt: string; files: File[] }
 ) {
+
   try {
 
-    let modelResult: any = null;
-    let reasoning: string | null = null;
-    let currentType = type;
+    let modelResult: any = null
+    let reasoning: string | null = null
+    let currentType = type
 
-    const file = input.files?.[0];
+    const file = input.files?.[0]
+    const promptLower = input.prompt.toLowerCase()
+
+    /**
+     * Detect deepfake related queries
+     */
+    const isDeepfakeQuery =
+      promptLower.includes("deepfake") ||
+      promptLower.includes("fake") ||
+      promptLower.includes("ai generated") ||
+      promptLower.includes("synthetic")
 
     /**
      * 1️⃣ Document Processing
@@ -41,45 +42,47 @@ export async function analyzeContent(
 
       try {
 
-        const documentResult = await processDocument(file, input.prompt);
+        const documentResult = await processDocument(file, input.prompt)
 
         return {
           success: true,
           documentResult,
           reasoning: JSON.stringify(documentResult)
-        };
+        }
 
       } catch (error: any) {
 
-        console.error("Document processing error:", error);
+        console.error("Document processing error:", error)
 
-        const errorMsg = error.message || "";
+        const errorMsg = error.message || ""
 
         const isActuallyImage =
           errorMsg.includes("IMAGE_FILE") ||
           errorMsg.includes("image renamed to .pdf") ||
-          errorMsg.includes("scanned image");
+          errorMsg.includes("scanned image")
 
         if (isActuallyImage) {
 
-          console.warn("Document contains image data. Redirecting to Photo analysis...");
-          currentType = "photo";
+          console.warn("Document is actually an image. Switching to photo mode.")
+          currentType = "photo"
 
         } else {
 
-          const fallbackReasoning = await runLLM(
-            `Explain politely why the document could not be processed.
+          const fallback = await runLLM(`
+Explain politely why the document could not be processed.
 
-Error: ${errorMsg}
+Error:
+${errorMsg}
 
-User request: ${input.prompt}`
-          );
+User request:
+${input.prompt}
+`)
 
           return {
             success: false,
             error: errorMsg,
-            reasoning: fallbackReasoning
-          };
+            reasoning: String(fallback)
+          }
         }
       }
     }
@@ -89,107 +92,138 @@ User request: ${input.prompt}`
      */
     if (currentType === "photo" && file) {
 
-      const [visionData, mobileData, deepfakeData] = await Promise.all([
-        runVisionModel(file),
-        runMobileNet(file),
-        runDeepfakeModel(file)
-      ]);
+  const intent = detectIntent(input.prompt)
 
-      modelResult = {
-        visionData,
-        mobileData,
-        deepfakeData
-      };
+  let modelContext: any = {}
 
-      const context = JSON.stringify({
-        fileName: file.name,
-        visionFeatures: visionData,
-        classifier: mobileData?.label || "unknown",
-        deepfakeScore: deepfakeData
-      });
+  /**
+   * 1️⃣ Deepfake detection
+   */
+  if (intent === "deepfake") {
 
-      const isDeepfakeQuery =
-        input.prompt.toLowerCase().includes("deepfake") ||
-        input.prompt.toLowerCase().includes("ai generated");
+    const deepfakeData = await runDeepfakeModel(file)
 
-      let prompt = "";
-
-      if (isDeepfakeQuery) {
-
-        prompt = `
-You are an AI deepfake detection system.
-
-Image Data:
-${context}
-
-Return ONLY valid JSON.
-
-{
-"type": "deepfake_detection",
-"isDeepfake": true or false,
-"confidence": 0.0,
-"analysis": "short explanation"
-}
-`;
-
-      } else {
-
-        prompt = `
-You are an AI visual analysis system.
-
-Image Data:
-${context}
-
-User Request:
-${input.prompt}
-
-Return ONLY valid JSON.
-
-{
-"type": "photo_analysis",
-"summary": "description of the image",
-"scene": "category",
-"detectedObjects": [],
-"confidence": 0.0
-}
-`;
-      }
-
-      const llmResponse = await runLLM(prompt);
-
-      reasoning = extractJSON(String(llmResponse));
+    modelContext = {
+      isDeepfake: deepfakeData?.isDeepfake,
+      confidence: deepfakeData?.confidence
     }
 
+    const prompt = generatePrompt(intent, input.prompt, modelContext)
+    const llmResponse = await runLLM(prompt)
+
+    const parsed = extractJSON(llmResponse)
+
+    return {
+      success: true,
+      modelOutput: deepfakeData,
+      reasoning: parsed
+    }
+  }
+
+  /**
+   * 2️⃣ Content tagging
+   */
+  if (intent === "tagging") {
+
+    const mobileData = await runMobileNet(file)
+
+    modelContext = {
+      classifierResult: mobileData?.label || "unknown"
+    }
+
+    const prompt = generatePrompt(intent, input.prompt, modelContext)
+    const llmResponse = await runLLM(prompt)
+
+    const parsed = extractJSON(llmResponse)
+    const validated = validatePhotoResponse(parsed)
+
+    return {
+      success: true,
+      modelOutput: mobileData,
+      reasoning: validated
+    }
+  }
+
+  /**
+   * 3️⃣ Scene understanding
+   */
+  if (intent === "scene") {
+
+    const visionData = await runVisionModel(file)
+
+    modelContext = {
+      visionFeatures: visionData
+    }
+
+    const prompt = generatePrompt(intent, input.prompt, modelContext)
+    const llmResponse = await runLLM(prompt)
+
+    const parsed = extractJSON(llmResponse)
+    const validated = validatePhotoResponse(parsed)
+
+    return {
+      success: true,
+      modelOutput: visionData,
+      reasoning: validated
+    }
+  }
+
+  /**
+   * 4️⃣ General analysis (runs all models)
+   */
+  const visionData = await runVisionModel(file)
+  const mobileData = await runMobileNet(file)
+  const deepfakeData = await runDeepfakeModel(file)
+
+  modelContext = {
+    visionFeatures: visionData,
+    classifierResult: mobileData?.label || "unknown",
+    isDeepfake: deepfakeData?.isDeepfake
+  }
+
+  const prompt = generatePrompt("general", input.prompt, modelContext)
+  const llmResponse = await runLLM(prompt)
+
+  const parsed = extractJSON(llmResponse)
+  const validated = validatePhotoResponse(parsed)
+
+  return {
+    success: true,
+    modelOutput: modelContext,
+    reasoning: validated
+  }
+}
+
     /**
-     * 3️⃣ General Chat / Analysis
+     * 3️⃣ General AI Chat
      */
-    else {
+    if (!reasoning) {
 
       const response = await runLLM(`
-Context: ${currentType}
+Context type: ${currentType}
 
-User:
+User request:
 ${input.prompt}
 
-Provide a clear helpful answer.
-`);
+Provide a helpful response.
+`)
 
-      reasoning = String(response);
+      reasoning = String(response)
     }
 
     return {
       success: true,
       modelOutput: modelResult,
       reasoning: reasoning || "Analysis complete."
-    };
+    }
 
   } catch (error) {
 
-    console.error("Orchestrator error:", error);
+    console.error("Orchestrator error:", error)
 
     return {
       success: false,
       error: String(error)
-    };
+    }
   }
 }

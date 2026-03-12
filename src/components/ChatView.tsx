@@ -39,6 +39,35 @@ export default function ChatView({ messages, isTyping, onAttachmentClick }: Chat
         
         const jsonToParse = cleaned.substring(start, end + 1);
         data = JSON.parse(jsonToParse);
+
+        // Normalize tag object responses from LLM
+      if (data.tags && Array.isArray(data.tags)) {
+
+        // Convert object tags → string tags
+        if (typeof data.tags[0] === "object") {
+          data.tags = data.tags.map((t: any) => t.object || t.category || t.style);
+        }
+
+        // Normalize structure
+        data.type = "photo";
+        data.scene = data.scene || "Image Tags";
+        data.summary = data.summary || "After analyzing the image, the following tags were detected.";
+        data.detectedObjects = data.detectedObjects || data.tags.slice(0,3);
+        data.confidence = data.confidence ?? 0.9;
+      }
+
+        // Normalize description responses
+        if (data.description && !data.summary) {
+          data.summary = data.description;
+          data.type = data.type || "photo";
+        }
+        if (data.response) {
+          return (
+            <p className="text-sm leading-relaxed">
+              {String(data.response)}
+            </p>
+          );
+        }
       } else {
         return String(content);
       }
