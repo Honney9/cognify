@@ -4,6 +4,8 @@ import { runDeepfakeModel } from "./ai/deepfakeModel"
 import { runVisionModel } from "./ai/visionModel"
 import { AIInputType } from "./ai/modelRegistry"
 import { processDocument } from "./document/processor"
+import { analyzeCode } from "./ai/codeAnalysisService"
+
 import { 
   detectIntent,
   generatePrompt,
@@ -87,18 +89,27 @@ ${input.prompt}
       }
     }
 
-    /**
-     * 2️⃣ Photo Analysis
-     */
+    /**Code Analysis*/
+  if (currentType === "code") {
+
+    const code = input.prompt
+
+    const result = await analyzeCode(input.prompt, code)
+
+    return {
+      success: true,
+      modelOutput: result,
+      reasoning: result
+    }
+  }
+    /**Photo Analysis*/
     if (currentType === "photo" && file) {
 
   const intent = detectIntent(input.prompt)
 
   let modelContext: any = {}
 
-  /**
-   * 1️⃣ Deepfake detection
-   */
+  /** Deepfake detection*/
   if (intent === "deepfake") {
 
     const deepfakeData = await runDeepfakeModel(file)

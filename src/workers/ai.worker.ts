@@ -1,4 +1,5 @@
 import { analyzeContent } from "../services/orchestrator";
+import type { CodeAnalysisResponse } from "../services/ai/codeAnalysisService"
 
 /**
  * Main message listener for the background thread.
@@ -21,7 +22,19 @@ self.onmessage = async (e: MessageEvent) => {
         error: null,
         modelOutput: result.documentResult
       });
-    } else {
+    }
+    else if (result.success && result.modelOutput?.type === "code") {
+
+      const codeResult = result.modelOutput as CodeAnalysisResponse
+
+      self.postMessage({
+        success: true,
+        result: JSON.stringify(codeResult),
+        error: null,
+        modelOutput: codeResult
+      });
+    }
+    else {
       self.postMessage({
         success: result.success,
         result: result.success ? (result.reasoning || "Analysis complete.") : null,
