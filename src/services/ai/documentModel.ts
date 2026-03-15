@@ -2,50 +2,72 @@ import { runLLM } from "./llmModel";
 
 export async function runDocumentModel(file: File | Blob) {
   try {
-    // 1. Extract text from the File object
-    // This works inside a Worker
     const text = await file.text();
 
     if (!text || text.trim().length === 0) {
       throw new Error("Document is empty or could not be read.");
     }
 
+    // ADVANCED PROMPT ENGINEERING:
+    // Uses Role-Task-Constraint framework and explicit JSON schema definition
     const prompt = `
-      You are a document analysis AI.
-      Analyze the following document and return a JSON object with:
-      - anomalies (array of strings)
-      - complianceIssues (array of strings)
-      - structureScore (number 0-1)
+      ### ROLE
+      You are a Professional Document Auditor specialized in structural integrity and regulatory compliance.
 
-      Document Content:
-      ${text.substring(0, 5000)} // Limiting to prevent context overflow
+      ### TASK
+      Analyze the provided document text for anomalies (logical inconsistencies, missing sections), 
+      compliance issues (legal or formatting standard violations), and overall structural quality.
+
+      ### INPUT DATA
+      <document_text>
+      ${text.substring(0, 6000)} 
+      </document_text>
+
+      ### OUTPUT REQUIREMENTS
+      - Return ONLY a valid JSON object. 
+      - Do not include any introductory text or markdown explanations outside the JSON.
+      - If no issues are found, return empty arrays.
+      - "structureScore" must be a float between 0.0 and 1.0.
+
+      ### JSON SCHEMA
+      {
+        "anomalies": ["string"],
+        "complianceIssues": ["string"],
+        "structureScore": number,
+        "summary": "string (concise executive summary)"
+      }
     `;
 
     const response = await runLLM(prompt);
 
     if (!response) {
-      return { anomalies: [], complianceIssues: [], structureScore: 0 };
+      return { anomalies: [], complianceIssues: [], structureScore: 0, summary: "No response from model." };
     }
 
-    // Try to parse JSON from LLM response
     try {
-      // Find JSON block if LLM added conversational text
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      const jsonToParse = jsonMatch ? jsonMatch[0] : response;
-      const parsed = JSON.parse(jsonToParse);
+      // ADVANCED PARSING: 
+      // Handles cases where LLMs wrap JSON in markdown code blocks
+      const cleanJson = response
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+        
+      const jsonMatch = cleanJson.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleanJson);
 
       return {
-        anomalies: parsed.anomalies || [],
-        complianceIssues: parsed.complianceIssues || [],
-        structureScore: parsed.structureScore || 0,
-        summary: response
+        anomalies: Array.isArray(parsed.anomalies) ? parsed.anomalies : [],
+        complianceIssues: Array.isArray(parsed.complianceIssues) ? parsed.complianceIssues : [],
+        structureScore: typeof parsed.structureScore === 'number' ? parsed.structureScore : 0.5,
+        summary: parsed.summary || response.substring(0, 200)
       };
-    } catch {
-      // Fallback if LLM didn't return valid JSON
+    } catch (parseError) {
+      console.warn("[DocumentModel] JSON Parse failed, falling back to raw analysis.", parseError);
       return {
         anomalies: [],
         complianceIssues: [],
         structureScore: 0.5,
+        summary: "Analysis completed but format was irregular.",
         rawAnalysis: response
       };
     }
