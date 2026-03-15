@@ -5,6 +5,7 @@ import { runVisionModel } from "./ai/visionModel"
 import { AIInputType } from "./ai/modelRegistry"
 import { processDocument } from "./document/processor"
 import { analyzeCode } from "./ai/codeAnalysisService"
+import { saveCodeAnalysis } from "./db"
 
 import { 
   detectIntent,
@@ -95,6 +96,12 @@ ${input.prompt}
     const code = input.prompt
 
     const result = await analyzeCode(input.prompt, code)
+
+    await saveCodeAnalysis(
+      input.prompt,
+      code,
+      result.summary || result.explanation || "Code Analysis"
+    )
 
     return {
       success: true,

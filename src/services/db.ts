@@ -14,6 +14,32 @@ export const initDB = async () => {
   });
 };
 
+export const saveCodeAnalysis = async (
+  prompt: string,
+  code: string,
+  snippet: string
+) => {
+
+  const db = await initDB()
+
+  const date = new Date().toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric'
+  })
+
+  const entry = {
+    name: prompt.slice(0, 50) || "Code Analysis",
+    category: "Code",
+    date,
+    size: (code.length / 1024).toFixed(1) + " KB",
+    type: "text/code",
+    code,
+    snippet
+  }
+
+  return db.add(STORE_NAME, entry)
+}
+
 export const saveFileOffline = async (file: File, category: string) => {
   const db = await initDB();
 

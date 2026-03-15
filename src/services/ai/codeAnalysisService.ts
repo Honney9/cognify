@@ -10,7 +10,9 @@ export type CodeIntent =
 
 export type CodeAnalysisResponse = {
   success: boolean;
+  type: "code";
   summary?: string;
+  intent: CodeIntent;
   explanation?: string;
   bugs?: string[];
   vulnerabilities?: string[];
@@ -26,13 +28,38 @@ Intent Detection
 export function detectCodeIntent(prompt: string): CodeIntent {
   const p = prompt.toLowerCase();
 
-  if (p.includes("summarize")) return "summarize";
-  if (p.includes("explain")) return "explain";
-  if (p.includes("bug") || p.includes("error") || p.includes("vulnerability"))
+  if (
+    p.includes("what does") ||
+    p.includes("what is this code") ||
+    p.includes("summary") ||
+    p.includes("summarize") ||
+    p.includes("describe")
+  )
+    return "summarize";
+
+  if (p.includes("explain"))
+    return "explain";
+
+  if (
+    p.includes("bug") ||
+    p.includes("error") ||
+    p.includes("issue") ||
+    p.includes("vulnerability")
+  )
     return "bug_detection";
-  if (p.includes("optimize") || p.includes("improve"))
+
+  if (
+    p.includes("optimize") ||
+    p.includes("improve") ||
+    p.includes("suggest")
+  )
     return "optimization";
-  if (p.includes("convert") || p.includes("translate") || p.includes("rewrite"))
+
+  if (
+    p.includes("convert") ||
+    p.includes("translate") ||
+    p.includes("rewrite")
+  )
     return "convert";
 
   return "general";
@@ -40,6 +67,7 @@ export function detectCodeIntent(prompt: string): CodeIntent {
 
 /* -------------------------
 Prompt Generator
+Shorter prompt to avoid token overflow
 ------------------------- */
 
 export function generateCodePrompt(
@@ -47,119 +75,123 @@ export function generateCodePrompt(
   userPrompt: string,
   code: string
 ): string {
-  return `
-You are an AI code assistant.
 
-User request:
+  if (intent === "summarize") {
+    return `
+Explain briefly what this code does.
+
+Code:
+${code}
+
+Return JSON:
+{
+"type":"code",
+"summary":"short description"
+}`;
+  }
+
+  if (intent === "explain") {
+    return `
+Explain this code step-by-step.
+
+Code:
+${code}
+
+Return JSON:
+{
+"type":"code",
+"explanation":"detailed explanation"
+}`;
+  }
+
+  if (intent === "bug_detection") {
+    return `
+Find bugs and security issues in this code.
+
+Code:
+${code}
+
+Return JSON:
+{
+"type":"code",
+"bugs":[],
+"vulnerabilities":[]
+}`;
+  }
+
+  if (intent === "optimization") {
+    return `
+Suggest improvements for this code.
+
+Code:
+${code}
+
+Return JSON:
+{
+"type":"code",
+"suggestions":[],
+"optimizedCode":"optional"
+}`;
+  }
+
+  if (intent === "convert") {
+    return `
+Convert the code according to the request.
+
+Request:
 ${userPrompt}
 
 Code:
 ${code}
 
-Respond ONLY with JSON.
-
-Rules:
-- No text outside JSON
-- Use short sentences
-- bugs, vulnerabilities, suggestions must be arrays
-- If none exist return []
-
-Format:
+Return JSON:
 {
- "summary":"brief summary",
- "explanation":"step by step explanation",
- "bugs":["bug1","bug2"],
- "vulnerabilities":["security issue"],
- "suggestions":["improvement tip"],
- "optimizedCode":"optional",
- "convertedCode":"optional"
-}
-`;
+"type":"code",
+"convertedCode":"converted version"
+}`;
+  }
+
+  return `
+Analyze this code.
+
+Code:
+${code}
+
+Return JSON:
+{
+"type":"code",
+"summary":"what it does",
+"suggestions":[]
+}`;
 }
 
 /* -------------------------
-Robust JSON Extraction
+Safe JSON Extraction
 ------------------------- */
 
 function extractJSON(text: string): any {
+
   try {
+
     const cleaned = text
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
 
-    const match = cleaned.match(/\{[\s\S]*\}/);
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
 
-    if (!match) return null;
+    if (start === -1 || end === -1) {
+      return null;
+    }
 
-    return JSON.parse(match[0]);
+    const jsonString = cleaned.substring(start, end + 1);
+
+    return JSON.parse(jsonString);
+
   } catch {
     return null;
   }
-}
-
-/* -------------------------
-Response Formatter
-------------------------- */
-
-function formatResponse(data: CodeAnalysisResponse): string {
-  if (!data.success) return "❌ Failed to analyze code.";
-
-  let md = "";
-
-  if (data.summary) {
-    md += `### 📋 Summary\n${data.summary}\n\n`;
-  }
-
-  if (data.explanation) {
-    const explanationPoints = data.explanation
-      .split(". ")
-      .map((e) => `- ${e.trim()}`)
-      .join("\n");
-
-    md += `### 💡 Explanation\n${explanationPoints}\n\n`;
-  }
-
-  if (data.bugs && data.bugs.length > 0) {
-    md += `### 🐛 Bugs\n${data.bugs.map((b) => `- ${b}`).join("\n")}\n\n`;
-  }
-
-  if (data.vulnerabilities && data.vulnerabilities.length > 0) {
-    md += `### 🛡️ Vulnerabilities\n${data.vulnerabilities
-      .map((v) => `- ${v}`)
-      .join("\n")}\n\n`;
-  }
-
-  if (data.suggestions && data.suggestions.length > 0) {
-    md += `### ✨ Suggestions\n${data.suggestions
-      .map((s) => `- ${s}`)
-      .join("\n")}\n\n`;
-  }
-
-  if (data.optimizedCode && data.optimizedCode !== "optional") {
-    md += `### 🚀 Optimized Code\n\`\`\`javascript\n${data.optimizedCode}\n\`\`\`\n\n`;
-  }
-
-  if (data.convertedCode && data.convertedCode !== "optional") {
-    md += `### 🔄 Converted Code\n\`\`\`javascript\n${data.convertedCode}\n\`\`\`\n\n`;
-  }
-
-  return md.trim();
-}
-
-/* -------------------------
-Fallback Formatter
-------------------------- */
-
-function fallbackFormat(text: string): string {
-  return text
-    .replace(/"summary":/gi, "\n### 📋 Summary\n")
-    .replace(/"explanation":/gi, "\n### 💡 Explanation\n")
-    .replace(/"bugs":/gi, "\n### 🐛 Bugs\n")
-    .replace(/"vulnerabilities":/gi, "\n### 🛡️ Vulnerabilities\n")
-    .replace(/"suggestions":/gi, "\n### ✨ Suggestions\n")
-    .replace(/[{}"]/g, "")
-    .trim();
 }
 
 /* -------------------------
@@ -169,15 +201,16 @@ Main Service
 export async function analyzeCode(
   prompt: string,
   code: string
-): Promise<string> {
+): Promise<CodeAnalysisResponse> {
 
+  const intent = detectCodeIntent(prompt);
   try {
 
-    const intent = detectCodeIntent(prompt);
 
-    // reduce code size slightly for faster LLM response
-    const safeCode = code.slice(0, 1200);
-
+    /* limit code size to prevent token overflow */
+    const MAX_CODE_LENGTH = 1500
+    const safeCode = code.slice(0, MAX_CODE_LENGTH)
+   
     const llmPrompt = generateCodePrompt(intent, prompt, safeCode);
 
     const llmResponse = await runLLM(llmPrompt);
@@ -185,18 +218,31 @@ export async function analyzeCode(
     const parsed = extractJSON(llmResponse);
 
     if (!parsed) {
-      return fallbackFormat(llmResponse);
+
+      /* fallback if JSON failed */
+      return {
+        success: true,
+        intent,
+        type: "code",
+        summary: llmResponse.slice(0, 300)
+      };
     }
 
-    return formatResponse({
+    return {
       success: true,
-      ...parsed,
-    });
+      intent,
+      ...parsed
+    };
 
   } catch (error) {
 
     console.error("Code analysis error:", error);
-    return "Failed to analyze code. Please try again.";
 
+    return {
+      success: false,
+      type: "code",
+      intent,
+      summary: "Failed to analyze code.",
+    };
   }
 }

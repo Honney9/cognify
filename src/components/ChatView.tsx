@@ -120,6 +120,92 @@ export default function ChatView({ messages, isTyping, onAttachmentClick }: Chat
         );
       }
 
+      // 4. Handle Code Analysis format
+      if (data.type === "code") {
+
+      const intent = data.intent
+
+      return (
+        <div className="space-y-4 max-w-full">
+
+          <div className="flex items-center gap-2 font-bold text-base text-primary">
+            <Code size={18}/> 💻 Code Analysis
+          </div>
+
+          {intent === "summarize" && data.summary && (
+            <p className="text-sm leading-relaxed opacity-90">
+              {data.summary}
+            </p>
+          )}
+
+          {intent === "explain" && data.explanation && (
+            <div>
+              <p className="text-xs font-semibold mb-2 opacity-60 uppercase tracking-wider">
+                Explanation
+              </p>
+              <p className="text-sm leading-relaxed opacity-90">
+                {data.explanation}
+              </p>
+            </div>
+          )}
+
+          {intent === "bug_detection" && (
+            <>
+              {data.bugs?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-2 text-destructive uppercase tracking-wider">
+                    Bugs
+                  </p>
+                  <ul className="space-y-1 text-sm">
+                    {data.bugs.map((bug: string, i: number) => (
+                      <li key={i}>• {bug}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {data.vulnerabilities?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-2 text-destructive uppercase tracking-wider">
+                    Security Issues
+                  </p>
+                  <ul className="space-y-1 text-sm">
+                    {data.vulnerabilities.map((v: string, i: number) => (
+                      <li key={i}>• {v}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
+
+          {intent === "optimization" && (
+            <>
+              {data.suggestions?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-2 text-primary uppercase tracking-wider">
+                    Suggestions
+                  </p>
+                  <ul className="space-y-1 text-sm">
+                    {data.suggestions.map((s: string, i: number) => (
+                      <li key={i}>• {s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {data.optimizedCode && (
+                <pre className="bg-black/30 text-xs p-3 rounded-lg overflow-x-auto">
+                  <code>{data.optimizedCode}</code>
+                </pre>
+              )}
+            </>
+          )}
+
+        </div>
+      )
+    }
+
       // 4. Handle standard Photo analysis format
       if (data.type === "photo") {
         const summaryText = data.summary || data.text || data.description;
