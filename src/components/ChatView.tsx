@@ -23,10 +23,11 @@ export default function ChatView({ messages, isTyping, onAttachmentClick }: Chat
     }
   }, [messages, isTyping]);
 
-  const renderAIContent = (content: any) => {
+  const renderAIContent = (content: any, msg?: Message) => {
     try {
-      let data: any;
-
+      let data: any = null;
+      console.log("AI raw data", content);
+     
       // 1. Extract and Parse Content
       if (typeof content === "object" && content !== null) {
         data = content;
@@ -40,8 +41,17 @@ export default function ChatView({ messages, isTyping, onAttachmentClick }: Chat
         const jsonToParse = cleaned.substring(start, end + 1);
         data = JSON.parse(jsonToParse);
 
+        // Normalize document response
+        if (data.analysis && data.analysis.type === "document_analysis"){
+          data = {
+            type: "document_analysis",
+            summary: data.analysis.summary,
+            keyPoints: data.analysis.keyPoints || []
+          }
+        }
+
         // Normalize tag object responses from LLM
-      if (data.tags && Array.isArray(data.tags)) {
+      if (data.tags && Array.isArray(data.tags) && !data.type) {
 
         // Convert object tags → string tags
         if (typeof data.tags[0] === "object") {
@@ -55,6 +65,11 @@ export default function ChatView({ messages, isTyping, onAttachmentClick }: Chat
         data.detectedObjects = data.detectedObjects || data.tags.slice(0,3);
         data.confidence = data.confidence ?? 0.9;
       }
+
+         if (data.image_description && !data.summary) {
+          data.summary = data.image_description;
+          data.type = "photo"; // Force it to use the Photo UI block
+        }
 
         // Normalize description responses
         if (data.description && !data.summary) {
@@ -71,6 +86,55 @@ export default function ChatView({ messages, isTyping, onAttachmentClick }: Chat
       } else {
         return String(content);
       }
+
+      const hasImage = msg?.attachments?.some(f => f.type.startsWith("image/"))
+
+/**
+ * 🔥 AUTO-DETECT IMAGE ANALYSIS (CLIP / ONNX OUTPUT FIX)
+ */
+if (data && !data.type) {
+
+  // Case 1: Image attached
+  if (hasImage) {
+    data.type = "photo";
+  }
+
+  // ✅ FIXED: Detect ANY vision/LLM image response
+  if (
+    data.analysis &&
+    typeof data.analysis === "object"
+  ) {
+    const a = data.analysis;
+
+    // Detect image-related structure
+    if (
+      a.image_type ||
+      a.objects ||
+      a.tags ||
+      a.description ||
+      a.type === "gallery"
+    ) {
+      data.type = "photo";
+
+      // Normalize fields
+      data.scene = data.scene || a.image_type || "Image Analysis";
+      data.summary = data.summary || a.description || "AI analyzed the image.";
+
+      if (!data.tags && Array.isArray(a.tags)) {
+        data.tags = a.tags;
+      }
+
+      if (!data.detectedObjects && Array.isArray(a.objects)) {
+        data.detectedObjects = a.objects.map((o: any) =>
+          typeof o === "object" ? (o.type || o.label) : o
+        );
+      }
+
+      data.confidence = data.confidence ?? 0.9;
+    }
+  }
+}
+      
 
       // 2. Handle generic result formats: {confidence, tags, type, text/summary}
       if (data.confidence !== undefined && (data.text || data.summary || data.tags)) {
@@ -369,7 +433,11 @@ export default function ChatView({ messages, isTyping, onAttachmentClick }: Chat
       }
 
       // 8. Handle Combined Document Processing Result (all three)
-      if (data.detection || data.validation || data.analysis) {
+      if (
+        (data.detection || data.validation) &&
+        data.type !== "photo" &&
+        data.type !== "document_analysis"
+      ) {
         return (
           <div className="space-y-6 max-w-full">
             {data.detection && (
@@ -488,7 +556,7 @@ export default function ChatView({ messages, isTyping, onAttachmentClick }: Chat
               <div className={`h-8 w-8 rounded-full shrink-0 flex items-center justify-center border ${
                 msg.role === "user" ? "bg-primary/10 border-primary/20 text-primary" : "bg-card-bg border-card-border text-foreground"
               }`}>
-                {msg.role === "user" ? <User size={16} /> : <span className="text-[10px] font-bold">C</span>}
+                {msg.role === "user" ? <User size={16} /> : <img src="/favicon.png" alt="AI" className="h-5 w-5 object-contain" />}
               </div>
 
               <div className={`flex flex-col gap-1 ${msg.role === "user" ? "items-end" : "items-start"}`}>
@@ -531,7 +599,7 @@ export default function ChatView({ messages, isTyping, onAttachmentClick }: Chat
                   {msg.content && (
                     <div className="px-4 py-3 text-sm leading-relaxed">
                       {msg.role === "assistant" 
-                        ? renderAIContent(msg.content) 
+                        ? renderAIContent(msg.content, msg) 
                         : (typeof msg.content === 'object' ? JSON.stringify(msg.content) : String(msg.content))
                       }
                     </div>
@@ -546,7 +614,9 @@ export default function ChatView({ messages, isTyping, onAttachmentClick }: Chat
           <div className="flex justify-start animate-in fade-in duration-300">
             <div className="flex gap-3 flex-row">
               <div className="h-8 w-8 rounded-full bg-card-bg border border-card-border flex items-center justify-center text-foreground">
-                <span className="text-[10px] font-bold">C</span>
+                <span className="text-[10px] font-bold">
+                  <img src="/favicon.png" alt="" />
+                </span>
               </div>
               <div className="bg-card-bg border border-card-border px-4 py-3 rounded-[20px] rounded-tl-none flex gap-1 items-center h-10">
                 <span className="w-1.5 h-1.5 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

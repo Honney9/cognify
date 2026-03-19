@@ -43,7 +43,7 @@ export async function runLLM(prompt: string): Promise<string> {
           }
         ],
         temperature: 0.3,
-        max_tokens: 200
+        max_tokens: 800
       });
 
     return response.choices[0]?.message?.content || "No response";

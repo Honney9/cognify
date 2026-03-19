@@ -84,7 +84,7 @@ export default function ContentHistoryView({ folder, onNavigate, onPreviewFile }
   const ListItem = ({ item, folderName }: { item: any, folderName: string }) => {
     const Icon = iconMap[folderName] || FileText;
     return (
-      <div onClick={() => onPreviewFile(item)} className="group flex items-start gap-4 p-4 rounded-[20px] bg-card-bg border border-transparent hover:border-card-border hover:bg-card-hover transition-all cursor-pointer relative">
+      <div onClick={() => setSelectedItem(item)} className="group flex items-start gap-4 p-4 rounded-[20px] bg-card-bg border border-transparent hover:border-card-border hover:bg-card-hover transition-all cursor-pointer relative">
         <div className="h-10 w-10 shrink-0 rounded-xl bg-icon-bg flex items-center justify-center">
           <Icon size={18} className="text-foreground/70" />
         </div>
