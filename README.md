@@ -20,6 +20,12 @@ Modern systems store huge amounts of data — photos, screenshots, code, documen
 
 ---
 
+# 🎥 Demo Video
+
+Watch Cognify in action:
+
+[![Watch the Demo](https://img.youtube.com/vi/SP-LHJO4v6c/0.jpg)](https://www.youtube.com/watch?v=SP-LHJO4v6c)
+
 # 🎯 Problem Statement
 Users generate massive unstructured content daily:
 - 📸 Photos & Screenshots  
