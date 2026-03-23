@@ -113,6 +113,7 @@ Automatically detects:
 ---
 
 # 🧠 AI Pipeline Architecture
+```
 User Input
 │
 ▼
@@ -131,10 +132,12 @@ Privacy Layer
 │
 ▼
 Final AI Response
+```
 
 ---
 
 # Model Pipeline 
+```
 Image Input
 │
 ▼
@@ -154,6 +157,7 @@ Privacy Detection
 │
 ▼
 Secure Actions
+```
 
 ---
 
