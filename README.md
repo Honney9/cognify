@@ -237,12 +237,13 @@ Secure Actions
 ```bash
 git clone https://github.com/honney9/cognify.git
 cd cognify
+```
 
 
 ## 2. Install Dependencies
 ```bash
 npm install
-
+```
 
 ## 3. Add Models
 Create a models/ folder:
@@ -267,7 +268,7 @@ https://github.com/onnx/models/raw/main/validated/vision/classification/efficien
 ## 4. Run Project
 ```bash
 npm run dev
-
+```
 Open:
 http://localhost:5173
 
