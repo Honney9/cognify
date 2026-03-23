@@ -63,14 +63,13 @@ export default function PromptUI({ onSend, showWelcome = true, onPreviewFile }: 
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null); // Ref for auto-resizing
+  const textareaRef = useRef<HTMLTextAreaElement>(null); 
 
-  // --- Auto-resize logic for textarea ---
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "inherit";
       const scrollHeight = textareaRef.current.scrollHeight;
-      textareaRef.current.style.height = `${Math.min(scrollHeight, 200)}px`; // Max height of 200px
+      textareaRef.current.style.height = `${Math.min(scrollHeight, 200)}px`;
     }
   }, [inputValue]);
 

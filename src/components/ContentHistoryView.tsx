@@ -150,7 +150,7 @@ export default function ContentHistoryView({ folder, onNavigate, onPreviewFile }
           {isDashboard ? (
             <div className="space-y-10 mt-4">
               {Object.keys(dbData).map((cat) => {
-                // EXCLUSION LOGIC: Do not show Secure Vault content in the main "My stuff" dashboard
+                
                 if (cat === "Secure Vault") return null;
 
                 const filtered = getFilteredItems(dbData[cat]);

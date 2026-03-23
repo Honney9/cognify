@@ -68,10 +68,10 @@ export default function ChatView({ messages, isTyping, onAttachmentClick }: Chat
 
          if (data.image_description && !data.summary) {
           data.summary = data.image_description;
-          data.type = "photo"; // Force it to use the Photo UI block
+          data.type = "photo";
         }
 
-        // Normalize description responses
+        
         if (data.description && !data.summary) {
           data.summary = data.description;
           data.type = data.type || "photo";
@@ -136,7 +136,7 @@ if (data && !data.type) {
 }
       
 
-      // 2. Handle generic result formats: {confidence, tags, type, text/summary}
+      // Handle generic result formats: {confidence, tags, type, text/summary}
       if (data.confidence !== undefined && (data.text || data.summary || data.tags)) {
         const displayText = data.text || data.summary || data.description;
         return (
@@ -160,7 +160,7 @@ if (data && !data.type) {
         );
       }
 
-      // 3. Handle Deepfake detection format
+      // Handle Deepfake detection format
       if (data.type === "deepfake_detection") {
         return (
           <div className="space-y-4 min-w-[280px]">
@@ -184,7 +184,7 @@ if (data && !data.type) {
         );
       }
 
-      // 4. Handle Code Analysis format
+      // Handle Code Analysis format
       if (data.type === "code") {
 
       const intent = data.intent
@@ -270,7 +270,7 @@ if (data && !data.type) {
       )
     }
 
-      // 4. Handle standard Photo analysis format
+      // Handle standard Photo analysis format
       if (data.type === "photo") {
         const summaryText = data.summary || data.text || data.description;
         const hasObjects = data.detectedObjects && Array.isArray(data.detectedObjects) && data.detectedObjects.length > 0;
@@ -328,7 +328,7 @@ if (data && !data.type) {
         );
       }
       
-      // 5. Handle Document Detection format
+      // Handle Document Detection format
       if (data.type === "document_detection") {
         return (
           <div className="space-y-4 min-w-[280px]">
@@ -354,7 +354,7 @@ if (data && !data.type) {
         );
       }
 
-      // 6. Handle Document Validation format
+      // Handle Document Validation format
       if (data.type === "document_validation") {
         return (
           <div className="space-y-4 min-w-[280px]">
@@ -402,7 +402,7 @@ if (data && !data.type) {
         );
       }
 
-      // 7. Handle Document Analysis format
+      // Handle Document Analysis format
       if (data.type === "document_analysis") {
         return (
           <div className="space-y-4 max-w-full">
@@ -432,7 +432,7 @@ if (data && !data.type) {
         );
       }
 
-      // 8. Handle Combined Document Processing Result (all three)
+      // Handle Combined Document Processing Result (all three)
       if (
         (data.detection || data.validation) &&
         data.type !== "photo" &&

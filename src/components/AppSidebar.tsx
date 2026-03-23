@@ -26,7 +26,7 @@ interface AppSidebarProps {
 const contentFolders = [
   { name: "Code", icon: Code },
   { name: "Documents", icon: FileText },
-  { name: "Gallery", icon: Image }, // Merged Screenshots and Photos
+  { name: "Gallery", icon: Image }, 
   { name: "Secure Vault", icon: Lock },
 ];
 

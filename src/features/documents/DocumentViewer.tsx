@@ -1,4 +1,4 @@
-import { ArrowLeft, Calendar, Share2, Download, Copy, FileText, Check, Trash2 } from "lucide-react"; // Added Trash2
+import { ArrowLeft, Calendar, Share2, Download, Copy, FileText, Check, Trash2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 
@@ -47,7 +47,7 @@ export default function DocumentViewer({ item, onBack, onDelete }: DocumentViewe
     if (window.confirm(`Are you sure you want to delete "${item.name}"?`)) {
       onDelete?.(item);
       toast.success("File deleted successfully");
-      onBack(); // Go back after deletion
+      onBack();
     }
   };
 

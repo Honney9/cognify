@@ -16,7 +16,7 @@ type AIResponse = {
   result?: string;
   error?: string;
   modelOutput?: any;
-  sensitive?: boolean; // Added for clarity
+  sensitive?: boolean; 
 };
 
 const Index = () => {
