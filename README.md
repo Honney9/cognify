@@ -158,7 +158,8 @@ Secure Actions
 ---
 
 # Project Structure
-\`\`\` src/
+```
+src/
 │
 ├── components/ui/
 │ ├── AppSidebar.tsx
@@ -203,7 +204,7 @@ Secure Actions
 ├── styles/
 ├── App.tsx
 └── main.tsx
-\`\`\`
+```
 
 ---
 
