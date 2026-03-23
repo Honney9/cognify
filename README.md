@@ -160,50 +160,49 @@ Secure Actions
 # Project Structure
 src/
 │
-├── components/ui/
-│ ├── AppSidebar.tsx
-│ ├── ChatView.tsx
-│ ├── ContentHistoryView.tsx
-│ ├── ModelManager.tsx
-│ ├── PromptUI.tsx
-│ └── DocumentViewer.tsx
+├── components/ui/        # UI components for user interaction
+│   ├── AppSidebar.tsx       # Sidebar navigation
+│   ├── ChatView.tsx         # Chat interface for AI interaction
+│   ├── ContentHistoryView.tsx # Displays analyzed content history
+│   ├── ModelManager.tsx     # Handles model selection/loading
+│   ├── PromptUI.tsx         # Prompt input interface
+│   └── DocumentViewer.tsx   # Document preview and rendering
 │
-├── hooks/
-│ ├── useCognify.ts
-│ ├── useLLM.ts
-│ ├── useModelLoader.ts
-│ ├── usePhotoAnalysis.ts
-│ └── useToast.ts
+├── hooks/               # Custom React hooks
+│   ├── useCognify.ts        # Core app logic hook
+│   ├── useLLM.ts            # LLM interaction logic
+│   ├── useModelLoader.ts    # Loads local AI models
+│   ├── usePhotoAnalysis.ts  # Image analysis logic
+│   └── useToast.ts          # Notification system
 │
-├── services/ai/
-│ ├── llmModel.ts
-│ ├── documentModel.ts
-│ ├── mobilenetModel.ts
-│ ├── visionModel.ts
-│ ├── photoAnalysisService.ts
-│ ├── deepfakeModel.ts
-│ └── privacyRules.ts
+├── services/ai/        # AI models & services
+│   ├── llmModel.ts         # Local language model integration
+│   ├── documentModel.ts    # Document processing model
+│   ├── mobilenetModel.ts   # Image classification model
+│   ├── visionModel.ts      # Vision analysis model
+│   ├── photoAnalysisService.ts # Image processing service
+│   ├── deepfakeModel.ts    # Deepfake detection model
+│   └── privacyRules.ts     # Privacy & security logic
 │
-├── workers/
-│ ├── ai.worker.ts
-│ └── visionWorker.ts
+├── workers/           # Web Workers for background processing
+│   ├── ai.worker.ts        # AI computation worker
+│   └── visionWorker.ts     # Vision processing worker
 │
-├── utilsModels/
-├── utilsLLMs/
-├── utilsPhotoAnalysis/
+├── utilsModels/       # Helper functions for models
+├── utilsLLMs/         # Utilities for LLM handling
+├── utilsPhotoAnalysis/ # Image analysis utilities
 │
-├── validators/
-│ ├── detectors.ts
-│ ├── analyzers.ts
-│ ├── processors.ts
-│ ├── sensitiveDetectors.ts
-│ └── validators.ts
+├── validators/        # Data validation & analysis logic
+│   ├── detectors.ts         # Detection logic
+│   ├── analyzers.ts         # Content analysis
+│   ├── processors.ts        # Data processing
+│   ├── sensitiveDetectors.ts # Sensitive data detection
+│   └── validators.ts        # General validation utilities
 │
-├── pages/
-├── styles/
-├── App.tsx
-└── main.tsx
-
+├── pages/             # Application pages/routes
+├── styles/            # Styling files
+├── App.tsx            # Root React component
+└── main.tsx           # Application entry point
 
 ---
 
