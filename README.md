@@ -1,130 +1,312 @@
-# RunAnywhere Web Starter App
+# 🧠 Cognify  
+### Privacy-Preserving Offline AI Productivity Suite  
 
-A minimal React + TypeScript starter app demonstrating **on-device AI in the browser** using the [`@runanywhere/web`](https://www.npmjs.com/package/@runanywhere/web) SDK. All inference runs locally via WebAssembly — no server, no API key, 100% private.
+Transform raw digital files into **contextual intelligence — fully offline, directly in your browser.**
 
-## Features
+---
 
-| Tab | What it does |
-|-----|-------------|
-| **Chat** | Stream text from an on-device LLM (LFM2 350M) |
-| **Vision** | Point your camera and describe what the VLM sees (LFM2-VL 450M) |
-| **Voice** | Speak naturally — VAD detects speech, STT transcribes, LLM responds, TTS speaks back |
+# 🚀 Overview
+Modern systems store huge amounts of data — photos, screenshots, code, documents — but treat them as **isolated files instead of connected knowledge**.
 
-## Quick Start
+**Cognify solves this** by introducing a **context-aware Edge AI system** that:
+- Understands content type automatically
+- Runs AI models locally (no cloud)
+- Generates meaningful insights instantly
 
+✅ No Internet Required  
+🔒 No Data Leakage  
+⚡ Real-Time Processing  
+🧠 Context-Aware Intelligence  
+
+---
+
+# 🎯 Problem Statement
+Users generate massive unstructured content daily:
+- 📸 Photos & Screenshots  
+- 📄 Documents  
+- 💻 Code Files  
+
+But current systems:
+- Don’t understand content  
+- Don’t connect information  
+- Require cloud AI (privacy risk)  
+
+### Result:
+- Cognitive overload  
+- Poor searchability  
+- Repeated effort  
+- Security risks  
+
+---
+
+# 💡 Solution: Cognify
+Cognify introduces a **modular AI pipeline** that:
+1. Detects content type  
+2. Routes to the correct AI module  
+3. Runs inference locally using:
+   - ONNX Runtime  
+   - WebAssembly (WASM)  
+   - WebLLM  
+
+---
+
+# ✨ Core Features
+
+## 💻 AI Developer Assistant
+- Code summarization  
+- Bug detection  
+- Vulnerability analysis  
+- Optimization suggestions  
+- Multi-language support  
+
+---
+
+## 📄 Document Intelligence
+- Document summarization  
+- Key point extraction  
+- Validation & anomaly detection  
+- Fraud detection  
+
+---
+
+## 📸 Screenshot Intelligence
+Detects sensitive data like:
+- OTPs  
+- Bank details  
+- IDs  
+- Credentials  
+
+---
+
+## 🖼️ Photo Intelligence
+- Scene understanding  
+- Object detection  
+- Tag generation  
+- Deepfake detection  
+
+**Example Outputs:**
+- “Office Meeting”  
+- “Study Session”  
+- “Road Trip”  
+
+---
+
+## 🔐 Privacy Protection Layer
+Automatically detects:
+- Passports  
+- ID cards  
+- Certificates  
+- Financial documents  
+
+### Smart Actions:
+- Move to Secure Vault  
+- Blur previews  
+- Hide sensitive content  
+
+---
+
+## 🔑 Secure Vault
+- Biometric / Device authentication  
+- Fully local storage  
+- Prevents unauthorized access  
+
+---
+
+# 🧠 AI Pipeline Architecture
+User Input
+│
+▼
+Content Detection
+│
+▼
+Feature Router
+│
+├── Code → WebLLM
+├── Document → Document Model
+├── Screenshot → Vision + Sensitive Detection
+└── Photo → Vision + CLIP + Scene Understanding
+│
+▼
+Privacy Layer
+│
+▼
+Final AI Response
+
+---
+
+# Model Pipeline 
+Image Input
+│
+▼
+MobileNet / EfficientNet
+│
+▼
+Feature Extraction
+│
+▼
+CLIP (Semantic Understanding)
+│
+▼
+Scene Classification
+│
+▼
+Privacy Detection
+│
+▼
+Secure Actions
+
+---
+
+# Project Structure
+src/
+│
+├── components/ui/
+│ ├── AppSidebar.tsx
+│ ├── ChatView.tsx
+│ ├── ContentHistoryView.tsx
+│ ├── ModelManager.tsx
+│ ├── PromptUI.tsx
+│ └── DocumentViewer.tsx
+│
+├── hooks/
+│ ├── useCognify.ts
+│ ├── useLLM.ts
+│ ├── useModelLoader.ts
+│ ├── usePhotoAnalysis.ts
+│ └── useToast.ts
+│
+├── services/ai/
+│ ├── llmModel.ts
+│ ├── documentModel.ts
+│ ├── mobilenetModel.ts
+│ ├── visionModel.ts
+│ ├── photoAnalysisService.ts
+│ ├── deepfakeModel.ts
+│ └── privacyRules.ts
+│
+├── workers/
+│ ├── ai.worker.ts
+│ └── visionWorker.ts
+│
+├── utilsModels/
+├── utilsLLMs/
+├── utilsPhotoAnalysis/
+│
+├── validators/
+│ ├── detectors.ts
+│ ├── analyzers.ts
+│ ├── processors.ts
+│ ├── sensitiveDetectors.ts
+│ └── validators.ts
+│
+├── pages/
+├── styles/
+├── App.tsx
+└── main.tsx
+
+
+---
+
+# 🛠 Tech Stack
+
+### Frontend
+- React + Vite  
+- TypeScript  
+- TailwindCSS  
+- ShadCN UI  
+
+### AI & ML
+- CLIP  
+- MobileNet  
+- EfficientNet  
+- WebLLM  
+
+### Runtime
+- ONNX Runtime Web  
+- WebAssembly (WASM)  
+- Web Workers  
+
+### Storage
+- IndexedDB  
+
+---
+
+# ⚙️ Installation
+
+## 1. Clone Repository
+```bash
+git clone https://github.com/honney9/cognify.git
+cd cognify
+
+
+## 2. Install Dependencies
 ```bash
 npm install
-npm run dev
-```
 
-Open [http://localhost:5173](http://localhost:5173). Models are downloaded on first use and cached in the browser's Origin Private File System (OPFS).
 
-## How It Works
+## 3. Add Models
+Create a models/ folder:
 
-```
-@runanywhere/web (npm package)
-  ├── WASM engine (llama.cpp, whisper.cpp, sherpa-onnx)
-  ├── Model management (download, OPFS cache, load/unload)
-  └── TypeScript API (TextGeneration, STT, TTS, VAD, VLM, VoicePipeline)
-```
+models/
+├── clip.onnx
+├── mobilenet.onnx
+└── efficientnet.onnx
 
-The app imports everything from `@runanywhere/web`:
+Download Links:
 
-```typescript
-import { RunAnywhere, SDKEnvironment } from '@runanywhere/web';
-import { TextGeneration, VLMWorkerBridge } from '@runanywhere/web-llamacpp';
+CLIP
+https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/model.onnx
 
-await RunAnywhere.initialize({ environment: SDKEnvironment.Development });
+MobileNet
+https://github.com/onnx/models/raw/main/validated/vision/classification/mobilenet/model/mobilenetv2-7.onnx
 
-// Stream LLM text
-const { stream } = await TextGeneration.generateStream('Hello!', { maxTokens: 200 });
-for await (const token of stream) { console.log(token); }
+EfficientNet
+https://github.com/onnx/models/raw/main/validated/vision/classification/efficientnet-lite4/model/efficientnet-lite4-11.onnx
 
-// VLM: describe an image
-const result = await VLMWorkerBridge.shared.process(rgbPixels, width, height, 'Describe this.');
-```
 
-## Project Structure
-
-```
-src/
-├── main.tsx              # React root
-├── App.tsx               # Tab navigation (Chat | Vision | Voice)
-├── runanywhere.ts        # SDK init + model catalog + VLM worker
-├── workers/
-│   └── vlm-worker.ts     # VLM Web Worker entry (2 lines)
-├── hooks/
-│   └── useModelLoader.ts # Shared model download/load hook
-├── components/
-│   ├── ChatTab.tsx        # LLM streaming chat
-│   ├── VisionTab.tsx      # Camera + VLM inference
-│   ├── VoiceTab.tsx       # Full voice pipeline
-│   └── ModelBanner.tsx    # Download progress UI
-└── styles/
-    └── index.css          # Dark theme CSS
-```
-
-## Adding Your Own Models
-
-Edit the `MODELS` array in `src/runanywhere.ts`:
-
-```typescript
-{
-  id: 'my-custom-model',
-  name: 'My Model',
-  repo: 'username/repo-name',           // HuggingFace repo
-  files: ['model.Q4_K_M.gguf'],         // Files to download
-  framework: LLMFramework.LlamaCpp,
-  modality: ModelCategory.Language,      // or Multimodal, SpeechRecognition, etc.
-  memoryRequirement: 500_000_000,        // Bytes
-}
-```
-
-Any GGUF model compatible with llama.cpp works for LLM/VLM. STT/TTS/VAD use sherpa-onnx models.
-
-## Deployment
-
-### Vercel
-
+## 4. Run Project
 ```bash
-npm run build
-npx vercel --prod
-```
+npm run dev
 
-The included `vercel.json` sets the required Cross-Origin-Isolation headers.
+Open:
+http://localhost:5173
 
-### Netlify
+## 🔐 First Run Behavior
 
-Add a `_headers` file:
+Loads AI models locally
 
-```
-/*
-  Cross-Origin-Opener-Policy: same-origin
-  Cross-Origin-Embedder-Policy: credentialless
-```
+Caches models using IndexedDB
 
-### Any static host
+Enables offline inference
 
-Serve the `dist/` folder with these HTTP headers on all responses:
+## 🚀 Future Roadmap
 
-```
-Cross-Origin-Opener-Policy: same-origin
-Cross-Origin-Embedder-Policy: credentialless
-```
+Personal knowledge graph
 
-## Browser Requirements
+Semantic file search
 
-- Chrome 96+ or Edge 96+ (recommended: 120+)
-- WebAssembly (required)
-- SharedArrayBuffer (requires Cross-Origin Isolation headers)
-- OPFS (for persistent model cache)
+Voice AI interface
 
-## Documentation
+Smart memory system
 
-- [SDK API Reference](https://docs.runanywhere.ai)
-- [npm package](https://www.npmjs.com/package/@runanywhere/web)
-- [GitHub](https://github.com/RunanywhereAI/runanywhere-sdks)
+Workflow automation
 
-## License
+## 🎯 Vision
 
-MIT
+The future is private, on-device AI — not cloud-dependent systems.
+
+Cognify is built for:
+
+Privacy
+
+Speed
+
+Intelligence
+
+## 👩‍💻 Developers
+
+Honney Walia
+Backend • AI Integration • System Architecture
+
+Vidhi Chauhan
+Frontend • AI UX • Edge AI Integration
